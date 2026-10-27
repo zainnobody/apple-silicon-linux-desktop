@@ -174,6 +174,15 @@ The newest numbers, with their dates and sources, are in `STATUS.md`.
 
 Other sessions also use the M3. The coordinator session approves reboots. Path B on a subvolume does not need the partition resize.
 
+### What waits for what (2026-10-27)
+
+| Work | Waits for |
+|---|---|
+| Debian-family firmware hook, kernel package scripts, desktop profile script | Nothing. Written and tested with fake root file systems, no M3 needed. |
+| Phase 1 kernel packages built on the M3 | 1. The maintenance window: USB4 module permanent, one reboot, health check (coordinator). 2. The fix for the GPU render fault and the Mesa crash (GPU session), because the fix can change the kernel or Mesa. Then one kernel and Mesa version is frozen for the packages. |
+| Phase 2 Ubuntu on the M3 | Phase 1 and the firmware hook |
+| Sleep, Touch ID, AirDrop, camera quality, video decode in apps, Neural Engine | Not needed for the pack. A later pack release takes them when they work. |
+
 ## Sources
 
 - [Asahi M4 feature support](https://asahilinux.org/docs/platform/feature-support/m4/)
