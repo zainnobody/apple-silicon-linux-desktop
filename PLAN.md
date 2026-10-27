@@ -163,7 +163,7 @@ The newest numbers, with their dates and sources, are in `STATUS.md`.
 
 | Phase | Work | Done when | Needs the user |
 |---|---|---|---|
-| 0 | Backend files and `agx detect`. Stages A to K stop calling Fedora tools directly. | `agx detect` is correct on the M3 in Fedora. Scripts pass shellcheck. | No. Detect and backends done 2026-10-26 (correct on the M3, 12 of 12 tests, shellcheck clean). The stage port is next. |
+| 0 | Backend files and `agx detect`. Stages A to K stop calling Fedora tools directly. | `agx detect` is correct on the M3 in Fedora. Scripts pass shellcheck. | No. Done 2026-10-26: detect, backends and the stage port. All steps run as dry runs; `--apply` stays off until phase 2. Tests: 12 detect and 17 install cases pass on macOS and on the M3. Blocker found: the Debian family has no initramfs-tools hook for the Apple firmware. |
 | 1 | Kernel packages: .deb, .rpm and Arch from one tree | All three build. The .rpm installs on Fedora and boots. | One reboot |
 | 2 | Ubuntu 26.04 on the M3 by Path B. initramfs-tools hook. Mesa build on Ubuntu. | Ubuntu boots on our kernel. GPU tests, Wi-Fi, Bluetooth, audio and keyboard pass. | Go for the subvolume, reboots |
 | 3 | Kali by Path B | The same tests pass on Kali | Reboots |

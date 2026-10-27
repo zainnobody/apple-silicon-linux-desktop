@@ -1,33 +1,47 @@
 #!/usr/bin/env bash
 # agx: Apple silicon drivers for any Linux distro.
-# Phase 0: `agx detect` only. The other commands come in later phases (PLAN.md section 10).
+# Phase 0: `agx detect`, and dry runs of the install steps. Nothing installs yet (PLAN.md section 10).
 set -euo pipefail
 
 AGX_HOME="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/common.sh
 . "$AGX_HOME/lib/common.sh"
+# shellcheck source=lib/run.sh
+. "$AGX_HOME/lib/run.sh"
 # shellcheck source=lib/detect.sh
 . "$AGX_HOME/lib/detect.sh"
+# shellcheck source=lib/install.sh
+. "$AGX_HOME/lib/install.sh"
 
 usage() {
 	cat <<'EOF'
 Usage: agx <command>
 
-  detect [--json]   Read the Mac and the distro, print the install plan. Changes nothing.
+  detect [--json]        Read the Mac and the distro, print the install plan. Changes nothing.
+  plan-install           Print every install step for this Mac, in order, as a dry run.
+  step <name> [arg]      Print one install step as a dry run. Steps: backup platform mesa
+                         kernel kernel-replace bootbin-build <dtb|gpu> bootbin-use <stage>
+                         boot-once mesa-select default macos-switch
 
-Not built yet: install, build-mesa, desktop, status, undo.
+The steps only print their commands. Running them for real (--apply) is not enabled yet.
 
-Exit codes of detect: 0 ready, 2 unsupported Mac, 3 not Linux on Apple silicon,
-4 unknown distro family.
+Exit codes: 0 ready, 2 unsupported Mac, 3 not Linux on Apple silicon, 4 unknown distro
+family, 5 no machine profile for this board.
 EOF
 }
+
+for a in "$@"; do
+	[ "$a" != --apply ] || { echo "agx: --apply is not enabled yet. The install steps have only run as dry runs." >&2; exit 64; }
+done
 
 cmd="${1:-}"
 [ $# -eq 0 ] || shift
 case "$cmd" in
 detect) agx_detect "$@" ;;
+plan-install) agx_plan_install ;;
+step) agx_step "$@" ;;
 install | build-mesa | desktop | status | undo)
-	echo "agx $cmd: not built yet. Run 'agx detect' to see the plan." >&2
+	echo "agx $cmd: not built yet. Run 'agx plan-install' to see the steps." >&2
 	exit 64
 	;;
 "" | -h | --help | help) usage ;;

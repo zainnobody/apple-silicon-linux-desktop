@@ -1,4 +1,5 @@
 # shellcheck shell=bash
+# shellcheck disable=SC2153  # AGX_HOME is set by agx before it sources this file
 # agx detect: read the Mac and the distro, then print what `agx install` will do.
 # It only reads files. It changes nothing and needs no root.
 # Exit codes: 0 ready, 2 unsupported Mac, 3 not Linux on Apple silicon, 4 unknown distro family.
@@ -27,23 +28,54 @@ distro_family() {
 	echo unknown
 }
 
+# Sets the AGX_* machine and distro globals and loads the distro backend.
+# Used by `agx detect` and by the install steps.
+detect_basics() {
+	local compat w line
+	AGX_MODEL="$(dt_read model || true)"
+	AGX_BOARD="" AGX_SOC="" AGX_CHIP="" AGX_STATUS=unknown AGX_GPU_PATH="" AGX_PROFILE_NAME=- AGX_NOTE=""
+	compat="$(dt_read compatible || true)"
+	for w in $compat; do
+		case "$w" in
+		apple,arm-platform) ;;
+		apple,t[0-9]*) [ -n "$AGX_SOC" ] || AGX_SOC="${w#apple,}" ;;
+		apple,*) [ -n "$AGX_BOARD" ] || AGX_BOARD="${w#apple,}" ;;
+		esac
+	done
+	if [ -n "$AGX_SOC" ]; then
+		line="$(tsv_lookup "$AGX_HOME/data/socs.tsv" "$AGX_SOC")"
+		if [ -n "$line" ]; then
+			AGX_CHIP="$(printf '%s' "$line" | cut -f2)"
+			AGX_STATUS="$(printf '%s' "$line" | cut -f3)"
+			AGX_GPU_PATH="$(printf '%s' "$line" | cut -f4)"
+		fi
+		line="$(tsv_lookup "$AGX_HOME/data/boards.tsv" "$AGX_BOARD")"
+		if [ -n "$line" ]; then
+			AGX_STATUS="$(printf '%s' "$line" | cut -f2)"
+			AGX_PROFILE_NAME="$(printf '%s' "$line" | cut -f3)"
+			AGX_NOTE="$(printf '%s' "$line" | cut -f4)"
+		fi
+	fi
+	AGX_DISTRO_ID="$(osr_get ID)"
+	AGX_DISTRO_LIKE="$(osr_get ID_LIKE)"
+	AGX_DISTRO_NAME="$(osr_get PRETTY_NAME)"
+	AGX_FAMILY="$(distro_family "$AGX_DISTRO_ID" "$AGX_DISTRO_LIKE")"
+	BACKEND_TOOLS="" BACKEND_KERNEL_TARGET="" BACKEND_KERNEL_FORMAT="" BACKEND_FW_HOOK=""
+	if [ "$AGX_FAMILY" != unknown ]; then
+		# shellcheck source=/dev/null
+		. "$AGX_HOME/backends/$AGX_FAMILY.sh"
+	fi
+	AGX_RUNNING_KREL="${AGX_UNAME_R:-$(uname -r)}"
+}
+
 agx_detect() {
 	local json=0
 	[ "${1:-}" = "--json" ] && json=1
 	local warnings="" rc=0
 	add_warning() { warnings="${warnings}$1"$'\n'; }
 
-	# Machine: the board and SoC come from the device tree compatible list.
-	local compat model board="" soc="" w
-	compat="$(dt_read compatible || true)"
-	model="$(dt_read model || true)"
-	for w in $compat; do
-		case "$w" in
-		apple,arm-platform) ;;
-		apple,t[0-9]*) [ -n "$soc" ] || soc="${w#apple,}" ;;
-		apple,*) [ -n "$board" ] || board="${w#apple,}" ;;
-		esac
-	done
+	detect_basics
+	local model="$AGX_MODEL" board="$AGX_BOARD" soc="$AGX_SOC"
 	if [ -z "$soc" ]; then
 		if [ "$json" = 1 ]; then
 			printf '{"exit_code": 3, "error": "not Linux on Apple silicon"}\n'
@@ -53,19 +85,7 @@ agx_detect() {
 		return 3
 	fi
 
-	local chip="" status="unknown" gpu_path="" profile="-" note="" line
-	line="$(tsv_lookup "$AGX_HOME/data/socs.tsv" "$soc")"
-	if [ -n "$line" ]; then
-		chip="$(printf '%s' "$line" | cut -f2)"
-		status="$(printf '%s' "$line" | cut -f3)"
-		gpu_path="$(printf '%s' "$line" | cut -f4)"
-	fi
-	line="$(tsv_lookup "$AGX_HOME/data/boards.tsv" "$board")"
-	if [ -n "$line" ]; then
-		status="$(printf '%s' "$line" | cut -f2)"
-		profile="$(printf '%s' "$line" | cut -f3)"
-		note="$(printf '%s' "$line" | cut -f4)"
-	fi
+	local chip="$AGX_CHIP" status="$AGX_STATUS" gpu_path="$AGX_GPU_PATH" profile="$AGX_PROFILE_NAME" note="$AGX_NOTE"
 	case "$status" in
 	unsupported | unknown) rc=2 ;;
 	esac
@@ -77,15 +97,8 @@ agx_detect() {
 	m1n1_2="$(dt_read chosen/asahi,m1n1-stage2-version || true)"
 
 	# Distro and its backend.
-	local d_id d_like d_name family missing="" t
-	d_id="$(osr_get ID)"
-	d_like="$(osr_get ID_LIKE)"
-	d_name="$(osr_get PRETTY_NAME)"
-	family="$(distro_family "$d_id" "$d_like")"
-	BACKEND_TOOLS="" BACKEND_KERNEL_TARGET="" BACKEND_KERNEL_FORMAT="" BACKEND_FW_HOOK=""
+	local d_id="$AGX_DISTRO_ID" d_like="$AGX_DISTRO_LIKE" d_name="$AGX_DISTRO_NAME" family="$AGX_FAMILY" missing="" t
 	if [ "$family" != unknown ]; then
-		# shellcheck source=/dev/null
-		. "$AGX_HOME/backends/$family.sh"
 		for t in $BACKEND_TOOLS; do
 			has_tool "$t" || missing="${missing:+$missing }$t"
 		done
@@ -97,7 +110,7 @@ agx_detect() {
 
 	# Running state.
 	local kernel page gpu_driver="none" dev render=no mesa="none" p vendor_fw=no floor="n/a" f
-	kernel="${AGX_UNAME_R:-$(uname -r)}"
+	kernel="$AGX_RUNNING_KREL"
 	page="${AGX_PAGESIZE:-$(getconf PAGESIZE 2>/dev/null || echo unknown)}"
 	for dev in "$(agx_path /sys/bus/platform/devices)"/*.gpu; do
 		[ -L "$dev/driver" ] && gpu_driver="$(basename "$(readlink "$dev/driver")")"
