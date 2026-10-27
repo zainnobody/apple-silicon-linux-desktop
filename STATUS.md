@@ -4,7 +4,7 @@ Reference Mac: MacBook Pro 16-inch M3 Pro (Mac15,7, J516S, SoC T6030, chip revis
 
 Stack: kernel `7.2.11-m3gpu+` (SiliconForest `0e1f466` plus our patches), m1n1 `aca1258`, Mesa 26.3.0-devel (SiliconForest `7515336`) in `/opt/mesa-m3`.
 
-Last update: 2026-10-26 22:10 (M3 time, PDT). All times below are PDT on 2026-10-26.
+Last update: 2026-10-26 22:13 (M3 time, PDT). All times below are PDT on 2026-10-26.
 
 ## 1. Check on the new default boot (22:09, read only)
 
@@ -20,7 +20,19 @@ At 21:59 the M3 started from the GPU kernel as the default boot for the first ti
 | Memory floor | Accepted on the first try: DVFS state `0x30200 -> 0x32204` | Kernel log of this boot |
 | Stage L modules | `thunderbolt_apple.ko` and `hci_bcm4377.ko` are installed | `modinfo` |
 
-Not run again on this boot yet: the readback test, the memory bandwidth test and llama.cpp. They wait for the coordinator session's health check, because other sessions also test on the M3.
+The coordinator session's health check on the same boot reported these results:
+
+| Item | Result |
+|---|---|
+| Boot | Kernel `7.2.11-m3gpu+` from the default entry, m1n1 `aca1258` |
+| GPU driver | Probed as G15S. No GPU fault and no refused submit. |
+| Vulkan compute test | Pass |
+| Memory, CPU P cores | Best 127.1 GB/s, mean 126.4 GB/s |
+| Memory, GPU | Best 134.7 GB/s, mean 131.7 GB/s |
+
+So the memory floor works on a second boot, and the speed matches the 20:42 boot.
+
+Not run again on this boot yet: the readback test, `tests/mem-shared.sh` and the llama.cpp bench. The coordinator runs a USB4 module test and the partition shrink first. A kernel out-of-memory event hit at 21:28 during parallel tests, so this run waits for a free slot.
 
 ## 2. GPU correctness and stability (earlier boots)
 
