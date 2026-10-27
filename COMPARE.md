@@ -91,5 +91,6 @@ Way A is exact. Way B needs no restart, but the public table uses a llama.cpp bu
 ## Sources
 
 - macOS logs: `private-dumps/macos-final-2026-10-27/` on the host (`cpu-bw.log`, `metal-600s.log`, `macos-tests.log`). Private folder, never shared.
+- The same macOS numbers in `agx-linux-kit/docs/performance.md` (agx-linux-kit commit `c0e917a`). That file still lists the Linux one-thread value as "not measured". The value is in section 3 above.
 - Linux: `STATUS.md` (22:49 run) and the `cpu-bw-pt` runs at 22:54
 - [llama.cpp: Performance of llama.cpp on Apple Silicon M-series](https://github.com/ggml-org/llama.cpp/discussions/4167)
