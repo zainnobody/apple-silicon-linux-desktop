@@ -4,7 +4,7 @@ Reference Mac: MacBook Pro 16-inch M3 Pro (Mac15,7, J516S, SoC T6030, chip revis
 
 Stack: kernel `7.2.11-m3gpu+` (SiliconForest `0e1f466` plus our patches), m1n1 `aca1258`, Mesa 26.3.0-devel (SiliconForest `7515336`) in `/opt/mesa-m3`.
 
-Last update: 2026-10-27 07:45 (M3 time, PDT). Times below are PDT on 2026-10-26, unless a row says 2026-10-27.
+Last update: 2026-10-27 13:20 (M3 time, PDT). Times below are PDT on 2026-10-26, unless a row says 2026-10-27.
 
 ## 1. Full check on the default boot (22:49 to 22:52)
 
@@ -87,6 +87,18 @@ The "with the patch" column comes from `tests/mem-shared.sh` with the OpenMP bui
 - Text check at 07:34 (`results/fa-20261027-0734/textcheck`): the old and the new Mesa give the same text on 4 of 4 checks. GPU and CPU give the same text on 3 of 4. The 8B gives a different text on GPU and CPU for prompt 1 ("Paris, which is..." on the CPU, "a city of grandeur..." on the GPU). The 22:49 check used the 3B and gave the same text.
 - The GPU is 2.1 times faster than the CPU for prompts (8B). For token generation, the CPU is still a little faster (24.5 against 22.7 tokens/s).
 
+### Llama 2 7B Q4_0 against the public M3 Pro table (way B, 2026-10-27 13:06)
+
+`llama-bench -p 512 -n 128 -ngl 99 -fa 0`, llama.cpp `63b4b303b`, charger in. Public macOS Metal figure: 341.67 / 30.74 tokens/s.
+
+| Backend | pp512 (tokens/s) | tg128 (tokens/s) |
+|---|---|---|
+| Vulkan, default | 181.21 ± 0.04 (53 %) | 30.02 ± 0.05 (98 %) |
+| Vulkan, tuned tile (test switch) | 215.29 ± 0.07 (63 %) | 29.98 ± 0.04 (98 %) |
+| CPU, 6 threads | 110.87 ± 0.45 | 31.36 ± 0.03 |
+
+Details and limits of this pair: `COMPARE.md`, section 3.
+
 ## 5. CPU: 7-Zip
 
 `7z b`, 7-Zip 26.04, 23:32 (agx-linux-kit commit `eef73e1`).
@@ -110,5 +122,6 @@ The "with the patch" column comes from `tests/mem-shared.sh` with the OpenMP bui
 - Run of 22:49 on the M3: `~/distro-pack-check/20261026-2249/run.log` and `~/llm-work/results/bench-20261026-2249/`
 - `agx-linux-kit/docs/performance.md` (agx-linux-kit commit `643891f`)
 - `ane-linux/docs/llm-baseline.md` (ane-linux commit `083e8e9`)
+- Way B on the M3: `~/llm-work/results/wayb-20261027-1306/` (`system.txt`, `vulkan.md`, `vulkan-tiles.md`, `cpu.md`) and `/data/models/download.log` (checksum OK)
 - `agx-linux-kit/log/overview.html` (run order and stage results)
 - The coordinator session's health check of the 21:59 boot

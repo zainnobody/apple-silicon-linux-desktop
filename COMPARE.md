@@ -1,6 +1,6 @@
 # macOS against Linux on the same Mac
 
-Status (2026-10-27 07:45): memory and GPU compute are measured on both systems. The clean 600 s GPU compute run is in. llama.cpp way B is ready to run, but waits for the model download and the GPU go. 7-Zip is measured on Linux only. llama.cpp is not measured in macOS yet.
+Status (2026-10-27 13:20): memory and GPU compute are measured on both systems. The clean 600 s GPU compute run is in. llama.cpp way B is done: Linux writes text at 98 % of the public macOS figure and reads prompts at 53 % (63 % with a tuned tile). 7-Zip is measured on Linux only. llama.cpp is not measured in macOS yet.
 
 ## 1. Why the same Mac
 
@@ -111,11 +111,30 @@ Public reference (not this Mac, not this model): the llama.cpp Apple silicon tab
 
 Rerun after the combined reboot (2026-10-27 07:34, GPU session, flash attention Mesa, `-fa 1`): 8B 150.13 / 22.69, 3B 357.65 / 47.60 tokens/s. This is the same as 22:49 within 1 %.
 
+#### Way B: the public reference model (2026-10-27 13:06)
+
+Llama 2 7B Q4_0 (`Llama-2-7B-Q4_0.gguf`, SHA-256 checked), `llama-bench -p 512 -n 128 -ngl 99 -fa 0`, 5 repetitions, llama.cpp `63b4b303b`, kernel `7.2.11-m3gpu+`, Mesa in `/opt/mesa-m3`, charger in (battery Full), nothing else on the GPU. The coordinator session ran it with the commands from this session. Results: `~/llm-work/results/wayb-20261027-1306/` on the M3.
+
+| System | pp512 (tokens/s) | tg128 (tokens/s) | pp512 share of macOS | tg128 share of macOS |
+|---|---|---|---|---|
+| macOS, Metal (public table: M3 Pro 18-core GPU, llama.cpp `8e672ef`, November 2023) | 341.67 | 30.74 | 100 % | 100 % |
+| Linux, Vulkan, default settings | 181.21 ± 0.04 | 30.02 ± 0.05 | 53.0 % | 97.7 % |
+| Linux, Vulkan, tuned matrix tile (test switch) | 215.29 ± 0.07 | 29.98 ± 0.04 | 63.0 % | 97.5 % |
+| Linux, CPU, 6 threads | 110.87 ± 0.45 | 31.36 ± 0.03 | 32.4 % | 102.0 % |
+
+- **Token generation (writing text): Linux equals macOS.** 30.0 against 30.7 tokens/s. Memory speed limits this part, and the memory floor patch brought Linux to the macOS level.
+- **Prompt processing (reading text): Linux gives about half.** 181 against 342 tokens/s. GPU matrix math limits this part. The Linux Vulkan path is slower than Metal here.
+- **Tuned tile: 19 % faster prompts** (215 against 181). The GPU session found the tile. It is a test switch (`GGML_VK_HK_MWARP=128,128,64,16,64,32,2,4,4,1,32`) in a local change to `ggml-vulkan.cpp`, not in upstream llama.cpp. With no switch set, the local build runs like upstream `63b4b303b`, so the default row is an upstream result.
+- The CPU writes text a little faster than the GPU (31.4 against 30.0), as with the 8B model.
+- Both earlier estimates hold: prompts at about half of macOS, writing close to macOS.
+- Limits of this pair: the macOS row is a different M3 Pro and a 2023 llama.cpp. The model file is a newer conversion (3.53 GiB against 3.56 GiB in the table). Metal in llama.cpp is faster today, so the real prompt gap can be larger.
+- The run's boot (12:42 to 13:10) has no GPU fault lines in the kernel log after 13:05. It ended with a normal shutdown for the next reboot window.
+
 ## 4. What is still missing
 
 | Test | Why it is missing |
 |---|---|
-| llama.cpp with Metal on the same models | macOS on the M3 has no developer tools, so it cannot build llama.cpp. |
+| llama.cpp with Metal on the same models, on this Mac | macOS on the M3 has no developer tools, so it cannot build llama.cpp. Way B (section 3) gives a close pair from the public table. |
 | 7-Zip benchmark in macOS | The macOS visits are over. Linux has a value (section 3). |
 | GPU compute with no checks in macOS (`metal-stress`, no stops) | Needs a macOS boot. It gives the fair peak pair for the Linux 255.5 G. |
 | GPU memory read in macOS | Needs a Metal version of `vk-bandwidth` |
@@ -129,7 +148,7 @@ Two ways to measure llama.cpp:
 | A. One more macOS boot | Build llama.cpp (same commit, Metal) and `7zz` on the M5 host. Copy them and one model at a time over the local link. Two restarts, about 30 minutes. | Exact: same Mac, same models, same llama.cpp commit |
 | B. No macOS boot | Download the reference model (`ggml-org/Llama-2-7B-GGUF`, file `Llama-2-7B-Q4_0.gguf`, 3,792,015,872 bytes, SHA-256 starts `5b929e9c`, Llama 2 Community License) to `/data/models` on Linux. Run `llama-bench -p 512 -n 128 -ngl 99`. | Close: same model and settings as the public M3 Pro table, but a different Mac and an older macOS llama.cpp |
 
-Way B is chosen (2026-10-27). It waits for two things: the user's yes for the download, and the coordinator's word that the GPU session is done. Note: this file is 3.53 GiB. The public table lists 3.56 GiB, so it is a newer conversion of the same model, not the same file.
+Way B ran on 2026-10-27 at 13:06 (results in section 3). The file is 3.53 GiB. The public table lists 3.56 GiB, so it is a newer conversion of the same model, not the same file.
 
 Way A is exact. Way B needs no restart, but the public table uses a llama.cpp build from 2023. Metal in llama.cpp is faster today, so the real gap can be larger than way B shows.
 
