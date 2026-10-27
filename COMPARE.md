@@ -1,6 +1,6 @@
 # macOS against Linux on the same Mac
 
-Status (2026-10-27 01:00): memory and GPU compute are measured on both systems. The clean 600 s GPU compute run is in. 7-Zip is measured on Linux only. llama.cpp is not measured in macOS yet.
+Status (2026-10-27 07:45): memory and GPU compute are measured on both systems. The clean 600 s GPU compute run is in. llama.cpp way B is ready to run, but waits for the model download and the GPU go. 7-Zip is measured on Linux only. llama.cpp is not measured in macOS yet.
 
 ## 1. Why the same Mac
 
@@ -109,6 +109,8 @@ The macOS run slowed down after 450 s (19.7 frames/s from 450 s to 740 s), proba
 
 Public reference (not this Mac, not this model): the llama.cpp Apple silicon table lists the M3 Pro with 18 GPU cores at 341.67 / 30.74 tokens/s for Llama 2 7B Q4_0 with Metal (llama.cpp build `8e672ef`, November 2023). Llama 2 7B Q4_0 is 3.56 GiB, and our 8B Q4_K_M is 4.58 GiB. Token generation scales roughly with the model size, so macOS would give about 24 tokens/s for our 8B. Our Linux GPU gives 22.7. Prompt processing on Linux is probably about half the macOS speed. These are estimates, not measurements.
 
+Rerun after the combined reboot (2026-10-27 07:34, GPU session, flash attention Mesa, `-fa 1`): 8B 150.13 / 22.69, 3B 357.65 / 47.60 tokens/s. This is the same as 22:49 within 1 %.
+
 ## 4. What is still missing
 
 | Test | Why it is missing |
@@ -125,7 +127,9 @@ Two ways to measure llama.cpp:
 | Way | What it needs | Result |
 |---|---|---|
 | A. One more macOS boot | Build llama.cpp (same commit, Metal) and `7zz` on the M5 host. Copy them and one model at a time over the local link. Two restarts, about 30 minutes. | Exact: same Mac, same models, same llama.cpp commit |
-| B. No macOS boot | Download the reference model (`ggml-org/Llama-2-7B-GGUF`, Q4_0, about 3.8 GB) to `/data/models` on Linux. Run `llama-bench -p 512 -n 128 -ngl 99`. | Close: same model and settings as the public M3 Pro table, but a different Mac and an older macOS llama.cpp |
+| B. No macOS boot | Download the reference model (`ggml-org/Llama-2-7B-GGUF`, file `Llama-2-7B-Q4_0.gguf`, 3,792,015,872 bytes, SHA-256 starts `5b929e9c`, Llama 2 Community License) to `/data/models` on Linux. Run `llama-bench -p 512 -n 128 -ngl 99`. | Close: same model and settings as the public M3 Pro table, but a different Mac and an older macOS llama.cpp |
+
+Way B is chosen (2026-10-27). It waits for two things: the user's yes for the download, and the coordinator's word that the GPU session is done. Note: this file is 3.53 GiB. The public table lists 3.56 GiB, so it is a newer conversion of the same model, not the same file.
 
 Way A is exact. Way B needs no restart, but the public table uses a llama.cpp build from 2023. Metal in llama.cpp is faster today, so the real gap can be larger than way B shows.
 

@@ -4,7 +4,7 @@ Reference Mac: MacBook Pro 16-inch M3 Pro (Mac15,7, J516S, SoC T6030, chip revis
 
 Stack: kernel `7.2.11-m3gpu+` (SiliconForest `0e1f466` plus our patches), m1n1 `aca1258`, Mesa 26.3.0-devel (SiliconForest `7515336`) in `/opt/mesa-m3`.
 
-Last update: 2026-10-27 01:00 (M3 time, PDT). Times below are PDT on 2026-10-26, unless a row says 2026-10-27.
+Last update: 2026-10-27 07:45 (M3 time, PDT). Times below are PDT on 2026-10-26, unless a row says 2026-10-27.
 
 ## 1. Full check on the default boot (22:49 to 22:52)
 
@@ -78,9 +78,13 @@ The "with the patch" column comes from `tests/mem-shared.sh` with the OpenMP bui
 | 20:43 | 149.89 / 22.66 | 70.59 / 25.07 | First boot with the floor patch |
 | 21:30, `-fa 1` | 150.07 / 22.78 | n/a | Mesa build folder with the flash attention patch |
 | 22:49 | 149.97 / 22.72 | 71.40 / 24.50 | Default boot |
+| 2026-10-27 07:34, `-fa 0` | 149.98 / 22.79 | n/a | After the combined reboot. Installed Mesa with the flash attention fix (GPU session) |
+| 2026-10-27 07:34, `-fa 1` | 150.13 / 22.69 | n/a | Same run |
 
 - `test-backend-ops -o FLASH_ATTN_EXT`: 5368 of 5368 pass on the GPU (21:30).
-- The installed Mesa does not have the flash attention patch yet. Use `-fa 0` with it.
+- Since the combined reboot (2026-10-27), `/opt/mesa-m3` has the flash attention fix: its `libvulkan_asahi.so` has the same SHA-256 as the patched build in `~/m3gpu/build-mesa`. `-fa 1` and `-fa 0` give the same speed within 1 %.
+- 3B at 07:34: pp512 / tg128 357.65 / 47.60 (`-fa 1`), 357.11 / 47.97 (`-fa 0`) tokens/s.
+- Text check at 07:34 (`results/fa-20261027-0734/textcheck`): the old and the new Mesa give the same text on 4 of 4 checks. GPU and CPU give the same text on 3 of 4. The 8B gives a different text on GPU and CPU for prompt 1 ("Paris, which is..." on the CPU, "a city of grandeur..." on the GPU). The 22:49 check used the 3B and gave the same text.
 - The GPU is 2.1 times faster than the CPU for prompts (8B). For token generation, the CPU is still a little faster (24.5 against 22.7 tokens/s).
 
 ## 5. CPU: 7-Zip
