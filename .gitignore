@@ -1,0 +1,14 @@
+# Never commit Apple firmware, device dumps or machine identifiers
+private-dumps/
+vendorfw/
+*.dump
+config.local.sh
+# Build output, packages and models
+out/
+*.deb
+*.rpm
+*.pkg.tar.*
+*.gguf
+# Logs and system files
+*.log
+.DS_Store
