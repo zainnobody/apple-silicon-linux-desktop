@@ -1,0 +1,74 @@
+#!/bin/sh
+# SPDX-License-Identifier: MIT
+# distro-pack (agx): unpack the Apple firmware (vendorfw/firmware.cpio on the EFI system
+# partition) into the initramfs at /vendorfw. Port of the asahi-scripts dracut and mkinitcpio
+# firmware hooks (MIT, The Asahi Linux Contributors).
+#
+# Like those hooks, it runs before udev, so drivers that udev loads find their firmware.
+# mkinitramfs orders scripts with no PREREQ by name (GNU tsort), so this name runs before
+# init-top/udev. It also works after udev: init-bottom/agx-asahi-firmware calls it again
+# when /vendorfw is still missing.
+
+PREREQ=""
+prereqs() { echo "$PREREQ"; }
+case "$1" in
+prereqs)
+	prereqs
+	exit 0
+	;;
+esac
+
+# The tests point AGXFW_TEST_ROOT at a fake root. It is empty at boot.
+R="${AGXFW_TEST_ROOT:-}"
+# shellcheck source=/dev/null
+. "$R/scripts/functions"
+
+if [ -e "$R/vendorfw" ]; then
+	log_success_msg "Apple firmware: loaded by the boot loader"
+	exit 0
+fi
+
+# m1n1 sets this property. Without it, this is not an Apple silicon Mac: nothing to do.
+prop="$R/proc/device-tree/chosen/asahi,efi-system-partition"
+[ -e "$prop" ] || exit 0
+uuid="$(tr -d '\000' < "$prop" | tr '[:upper:]' '[:lower:]')"
+if [ -z "$uuid" ]; then
+	log_warning_msg "Apple firmware: m1n1 gave no EFI partition"
+	exit 0
+fi
+
+modprobe -q apple-mailbox
+modprobe -q nvme-apple
+modprobe -q vfat
+
+# The NVMe controller starts in the background. blkid finds the partition with or without udev.
+dev=""
+i=0
+while [ "$i" -lt 100 ]; do
+	dev="$(blkid -c /dev/null -l -o device -t "PARTUUID=$uuid" 2>/dev/null)"
+	[ -n "$dev" ] && break
+	sleep 0.1
+	i=$((i + 1))
+done
+if [ -z "$dev" ]; then
+	log_warning_msg "Apple firmware: no partition with PARTUUID $uuid after 10 s"
+	exit 0
+fi
+
+mnt="$R/run/agx-esp"
+mkdir -p "$mnt"
+if ! mount -t vfat -o ro "$dev" "$mnt"; then
+	log_warning_msg "Apple firmware: cannot mount the EFI partition $dev"
+	exit 0
+fi
+if [ -f "$mnt/vendorfw/firmware.cpio" ]; then
+	(cd "$R/" && cpio -i -d < "$mnt/vendorfw/firmware.cpio") 2> /dev/null
+fi
+umount "$mnt"
+
+if [ -d "$R/vendorfw" ]; then
+	log_success_msg "Apple firmware: unpacked from $dev"
+else
+	log_warning_msg "Apple firmware: no vendorfw/firmware.cpio on $dev"
+fi
+exit 0

@@ -62,7 +62,7 @@ So the M3 Pro 14-inch is very close to the tested 16-inch: same SoC, same GPU fi
 |---|---|---|---|
 | 1. Boot | m1n1 stage 2, U-Boot, device trees, in `boot.bin` on the EFI partition | Yes | Built per chip family |
 | 2. Kernel | 16K-page kernel. M1 and M2: the Asahi kernel. M3: SiliconForest at a pinned commit plus our patches. | Yes | The kernel's own targets: `make bindeb-pkg` (.deb), `make binrpm-pkg` (.rpm), `make pacman-pkg` (Arch). Source = pinned commit + patches. |
-| 3. Firmware loader | `asahi-scripts` (has dracut and mkinitcpio hooks) plus a new initramfs-tools hook for Debian, Ubuntu and Kali | Scripts yes, hook per initramfs system | Package |
+| 3. Firmware loader | `asahi-scripts` (has dracut and mkinitcpio hooks) plus the distro-pack initramfs-tools hook (`system/initramfs-tools`) for Debian, Ubuntu and Kali | Scripts yes, hook per initramfs system | Package |
 | 4. Platform userspace | `asahi-audio`, `alsa-ucm-conf-asahi` (config files), `speakersafetyd`, `asahi-bless`, `asahi-nvram` (Rust) | Yes, from source | Built per distro family. Reuse the Ubuntu Asahi and asahi-alarm recipes. |
 | 5. GPU | M1 and M2: the distro's Mesa. M3: SiliconForest Mesa built on the Mac into `/opt/mesa-agx`, turned on by the stage G selector. | Build per distro release | `agx build-mesa` |
 | 6. Machine profiles | `machines/<board>.sh`, firmware pins, the T6030 memory floor | Yes | In the repo |
@@ -81,13 +81,16 @@ The stage G selector already works with any desktop. It uses a systemd user envi
 | `agx desktop mac` | Applies the Mac-like desktop profile. |
 | `agx status` / `agx undo` | Shows what is installed. Removes it. |
 
-One backend file per distro family maps three jobs:
+One backend file per distro family maps four jobs:
 
 | Job | Debian family (Ubuntu, Debian, Kali) | Fedora | Arch |
 |---|---|---|---|
 | Install packages | apt | dnf | pacman |
 | Update the boot menu | `update-grub` | `grub2-mkconfig` | `grub-mkconfig` |
 | Build the initramfs | `update-initramfs` | `dracut` | `mkinitcpio` |
+| Load the Apple firmware at boot | distro-pack hook (`system/initramfs-tools`) | `dracut-asahi` | `asahi` mkinitcpio hook |
+
+**Firmware hook for the Debian family (2026-10-27).** asahi-scripts has hooks for dracut and mkinitcpio only. `system/initramfs-tools/` ports them. `scripts/init-top/agx-asahi-firmware` runs before udev. It finds the EFI partition by the PARTUUID from m1n1 and unpacks `vendorfw/firmware.cpio` to `/vendorfw`. `scripts/init-bottom/agx-asahi-firmware` copies the files to a tmpfs at `/lib/firmware/vendor` on the root file system. The Asahi kernel looks there first. The hook adds `nvme-apple`, `apple-mailbox`, `vfat` and the tools `blkid`, `cpio`, `tr` and `cp`. The firmware never goes into the initramfs file. `agx step firmware` installs the three files and runs `update-initramfs -u -k all`. It does nothing when a distro package already has a firmware hook. Tests: 51 cases in `tests/initramfs.sh` with fake root file systems, under dash, bash and busybox ash. A real boot is not tested yet. Phase 2 does that.
 
 Stages A to K become steps inside `agx install`. Five scripts call Fedora tools today: `stage-a.sh`, `stage-b.sh`, `stage-f.sh`, `stage-k-default.sh` and `setup-macos-switch.sh`.
 
@@ -163,7 +166,7 @@ The newest numbers, with their dates and sources, are in `STATUS.md`.
 
 | Phase | Work | Done when | Needs the user |
 |---|---|---|---|
-| 0 | Backend files and `agx detect`. Stages A to K stop calling Fedora tools directly. | `agx detect` is correct on the M3 in Fedora. Scripts pass shellcheck. | No. Done 2026-10-26: detect, backends and the stage port. All steps run as dry runs; `--apply` stays off until phase 2. Tests: 12 detect and 17 install cases pass on macOS and on the M3. Blocker found: the Debian family has no initramfs-tools hook for the Apple firmware. |
+| 0 | Backend files and `agx detect`. Stages A to K stop calling Fedora tools directly. | `agx detect` is correct on the M3 in Fedora. Scripts pass shellcheck. | No. Done 2026-10-26: detect, backends and the stage port. All steps run as dry runs; `--apply` stays off until phase 2. Tests: 12 detect and 17 install cases pass on macOS and on the M3. Blocker found: the Debian family has no initramfs-tools hook for the Apple firmware. Hook written 2026-10-27 (section 5). |
 | 1 | Kernel packages: .deb, .rpm and Arch from one tree | All three build. The .rpm installs on Fedora and boots. | One reboot |
 | 2 | Ubuntu 26.04 on the M3 by Path B. initramfs-tools hook. Mesa build on Ubuntu. | Ubuntu boots on our kernel. GPU tests, Wi-Fi, Bluetooth, audio and keyboard pass. | Go for the subvolume, reboots |
 | 3 | Kali by Path B | The same tests pass on Kali | Reboots |
@@ -178,9 +181,10 @@ Other sessions also use the M3. The coordinator session approves reboots. Path B
 
 | Work | Waits for |
 |---|---|
-| Debian-family firmware hook, kernel package scripts, desktop profile script | Nothing. Written and tested with fake root file systems, no M3 needed. |
+| Debian-family firmware hook | Done 2026-10-27. Tested with fake root file systems only. The first real boot is in phase 2. |
+| Kernel package scripts, desktop profile script | Nothing. Write and test with fake root file systems, no M3 needed. |
 | Phase 1 kernel packages built on the M3 | 1. The maintenance window: USB4 module permanent, one reboot, health check (coordinator). 2. The fix for the GPU render fault and the Mesa crash (GPU session), because the fix can change the kernel or Mesa. Then one kernel and Mesa version is frozen for the packages. |
-| Phase 2 Ubuntu on the M3 | Phase 1 and the firmware hook |
+| Phase 2 Ubuntu on the M3 | Phase 1 |
 | Sleep, Touch ID, AirDrop, camera quality, video decode in apps, Neural Engine | Not needed for the pack. A later pack release takes them when they work. |
 
 ## Sources

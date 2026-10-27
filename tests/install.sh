@@ -116,8 +116,11 @@ check kali 0 "$STOCK_D" plan-install -- \
 	"grub-set-default gnulinux-advanced-$UUID>gnulinux-$STOCK_D-advanced-$UUID" "update-grub" \
 	"grub-reboot gnulinux-advanced-$UUID>gnulinux-$NEW-advanced-$UUID" \
 	"/usr/lib/asahi-boot/u-boot-nodtb.bin" "grub-set-default gnulinux-advanced-$UUID>gnulinux-$NEW-advanced-$UUID" \
-	"GRUB_TIMEOUT_STYLE=menu" "NOT BUILT: initramfs-tools hook for the Apple firmware" \
-	! "restorecon" "dracut" "grub2-" "dnf "
+	"GRUB_TIMEOUT_STYLE=menu" "write /etc/initramfs-tools/hooks/agx-asahi-firmware (mode 0755)" \
+	"write /etc/initramfs-tools/scripts/init-top/agx-asahi-firmware" "cpio -i -d" \
+	"write /etc/initramfs-tools/scripts/init-bottom/agx-asahi-firmware" "mount -t tmpfs -o mode=0755 vendorfw" \
+	"mkdir -p /lib/firmware/vendor" "update-initramfs -u -k all" \
+	! "restorecon" "dracut --force" "grub2-" "dnf " "NOT BUILT"
 
 make_root ubuntu14 j514s t6030 "$UBUNTU" apt-get update-initramfs update-grub
 check ubuntu14 5 "$STOCK_D" plan-install -- "has no machine profile yet"
@@ -143,6 +146,16 @@ check fedora 64 "$STOCK_F" step backup --apply -- "--apply is not enabled yet"
 make_root fedora-fw j516s t6030 "$FEDORA" dnf dracut grub2-mkconfig
 mkdir -p "$TMP/fedora-fw/usr/lib/dracut/modules.d/99asahi-firmware"
 check fedora-fw 0 "$STOCK_F" step firmware -- "dracut-asahi from Fedora Asahi Remix loads it" ! "dnf install"
+
+# A firmware hook from a distro package wins. The agx hook from an earlier run does not count.
+make_root kali-fw j516s t6030 "$KALI" apt-get update-initramfs update-grub
+mkdir -p "$TMP/kali-fw/etc/initramfs-tools/hooks" "$TMP/kali-fw/usr/share/initramfs-tools/scripts/init-top"
+# shellcheck disable=SC2016  # literal $DESTDIR in the fake hook
+echo 'ln -s /vendorfw "$DESTDIR/lib/firmware/vendor"' > "$TMP/kali-fw/etc/initramfs-tools/hooks/agx-asahi-firmware"
+check kali-fw 0 "$STOCK_D" step firmware -- "write /etc/initramfs-tools/hooks/agx-asahi-firmware"
+echo 'cpio -i < /run/esp/vendorfw/firmware.cpio' > "$TMP/kali-fw/usr/share/initramfs-tools/scripts/init-top/asahi"
+check kali-fw 0 "$STOCK_D" step firmware -- \
+	"/usr/share/initramfs-tools/scripts/init-top/asahi loads it already; nothing to do" ! "write " "update-initramfs"
 
 # Kernel step safety checks.
 check fedora 1 "$NEW" step kernel -- "boot the distro kernel before installing $NEW"

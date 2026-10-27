@@ -2,7 +2,7 @@
 
 Apple silicon drivers for any Linux distro. One tool, `agx`, installs the boot parts, the kernel, the drivers, the GPU stack and an optional Mac-like desktop on Ubuntu, Debian, Kali, Fedora or Arch.
 
-Status (2026-10-26): phase 0 is done. `agx detect` works. The install steps are ported from agx-linux-kit and run as dry runs on the Debian family, Fedora and Arch. Real installs (`--apply`) are not enabled yet.
+Status (2026-10-26): phase 0 is done. `agx detect` works. The install steps are ported from agx-linux-kit and run as dry runs on the Debian family, Fedora and Arch. Real installs (`--apply`) are not enabled yet. The Debian family has its own firmware hook now (2026-10-27): Ubuntu, Debian and Kali load the Apple firmware at boot like Fedora and Arch. It is tested with fake root file systems, not on a real boot yet.
 
 ## Try it
 
@@ -34,6 +34,12 @@ tests/run.sh
 tests/install.sh
 ```
 
+```bash
+tests/initramfs.sh
+```
+
+Set `AGXFW_SH` to run the firmware scripts under another shell, for example `AGXFW_SH=bash`. The default is dash when it exists.
+
 ## Layout
 
 | Path | Contents |
@@ -46,10 +52,12 @@ tests/install.sh
 | `backends/` | One file per distro family: Debian (Ubuntu, Kali), Fedora, Arch. Each one maps packages, initramfs, boot entries and file labels. |
 | `machines/` | Machine profiles (J516S) |
 | `system/` | Templates for the Mesa selector |
+| `system/initramfs-tools/` | Apple firmware hook for the Debian family: a port of the asahi-scripts dracut and mkinitcpio hooks (MIT) |
 | `data/socs.tsv` | Every M-series chip, its support level and its GPU path |
 | `data/boards.tsv` | Board lines that override the chip level (tested and expected Macs) |
 | `tests/run.sh` | Detection tests with fake root file systems |
 | `tests/install.sh` | Install step tests: the commands of each backend, safety checks, and proof that a dry run changes no file |
+| `tests/initramfs.sh` | Firmware hook tests: fake initramfs roots, fake EFI partitions and stub commands |
 | `PLAN.md` | Goal, limits, chip coverage, layers, install paths, desktop, phases |
 | `STATUS.md` | Newest verified results on the reference Mac |
 | `COMPARE.md` | macOS against Linux on the same Mac |

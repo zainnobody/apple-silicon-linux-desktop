@@ -5,7 +5,7 @@ BACKEND_NAME=debian
 BACKEND_TOOLS="apt-get update-initramfs update-grub"
 BACKEND_KERNEL_TARGET=bindeb-pkg   # kernel make target for a .deb
 BACKEND_KERNEL_FORMAT=.deb
-BACKEND_FW_HOOK="new initramfs-tools hook (asahi-scripts has no initramfs-tools hook)"
+BACKEND_FW_HOOK="initramfs-tools hook from distro-pack (system/initramfs-tools)"
 # asahi-scripts reads this file; it has no Debian patch for the path.
 BACKEND_M1N1_CONF=/etc/default/update-m1n1
 BACKEND_UBOOT=/usr/lib/asahi-boot/u-boot-nodtb.bin
@@ -40,8 +40,34 @@ bk_boot_once() { grub_use_saved; run grub-reboot "$1"; }
 bk_set_default() { run grub-set-default "$1"; }
 bk_keep_default_on_update() { grub_use_saved; }
 bk_show_menu() { grub_show_menu; run update-grub; }
-# Blocker for Debian-family installs: asahi-scripts has no initramfs-tools hook, so nothing
-# mounts the Apple firmware (Wi-Fi, Bluetooth, camera, trackpad) at boot. Phase 2 writes it.
+# asahi-scripts has no initramfs-tools hook, so distro-pack brings its own (system/initramfs-tools).
+# Without one, the Apple firmware (Wi-Fi, Bluetooth, camera, trackpad) does not load at boot.
+FW_HOOK_FILES="hooks/agx-asahi-firmware scripts/init-top/agx-asahi-firmware scripts/init-bottom/agx-asahi-firmware"
+
+# A firmware hook from somewhere else (a distro package), if there is one.
+fw_hook_other() {
+	local d f
+	for d in /usr/share/initramfs-tools /etc/initramfs-tools; do
+		[ -d "$(agx_path "$d")" ] || continue
+		f="$(grep -rlsF vendorfw "$(agx_path "$d")" | grep -v '/agx-asahi-firmware$' | head -n 1)"
+		if [ -n "$f" ]; then
+			printf '%s\n' "${f#"$AGX_ROOT"}"
+			return
+		fi
+	done
+}
+
 bk_firmware_hook() {
-	echo "  NOT BUILT: initramfs-tools hook for the Apple firmware. Without it, Wi-Fi, Bluetooth, camera and trackpad firmware do not load."
+	local other f
+	other="$(fw_hook_other)"
+	if [ -n "$other" ]; then
+		echo "  $other loads it already; nothing to do"
+		return
+	fi
+	for f in $FW_HOOK_FILES; do
+		write_file "/etc/initramfs-tools/$f" 0755 < "$AGX_HOME/system/initramfs-tools/$f"
+	done
+	# The boot script mounts a tmpfs here. The root file system is read-only at that time.
+	run mkdir -p /lib/firmware/vendor
+	run update-initramfs -u -k all
 }

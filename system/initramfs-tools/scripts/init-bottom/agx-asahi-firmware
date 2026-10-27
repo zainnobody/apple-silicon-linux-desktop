@@ -1,0 +1,38 @@
+#!/bin/sh
+# SPDX-License-Identifier: MIT
+# distro-pack (agx): copy the Apple firmware from the initramfs (/vendorfw) to a tmpfs at
+# /lib/firmware/vendor on the root file system. The firmware stays in memory and is never
+# written to the disk. Port of the asahi-scripts dracut and mkinitcpio firmware hooks
+# (MIT, The Asahi Linux Contributors). Pair of init-top/agx-asahi-firmware.
+
+PREREQ=""
+prereqs() { echo "$PREREQ"; }
+case "$1" in
+prereqs)
+	prereqs
+	exit 0
+	;;
+esac
+
+# The tests point AGXFW_TEST_ROOT at a fake root. It is empty at boot.
+R="${AGXFW_TEST_ROOT:-}"
+# shellcheck source=/dev/null
+. "$R/scripts/functions"
+
+# Second try: udev has run now, so the EFI partition is visible.
+[ -e "$R/vendorfw" ] || "$R/scripts/init-top/agx-asahi-firmware"
+[ -e "$R/vendorfw" ] || exit 0
+
+# The root file system is read-only here, so `agx step firmware` makes this folder.
+dst="$R${rootmnt:?}/lib/firmware/vendor"
+if [ ! -d "$dst" ]; then
+	log_warning_msg "Apple firmware: no ${rootmnt}/lib/firmware/vendor folder on the root file system"
+	exit 0
+fi
+if ! mount -t tmpfs -o mode=0755 vendorfw "$dst"; then
+	log_warning_msg "Apple firmware: cannot mount a tmpfs at ${rootmnt}/lib/firmware/vendor"
+	exit 0
+fi
+cp -a "$R/vendorfw/." "$dst/"
+log_success_msg "Apple firmware: copied to /lib/firmware/vendor"
+exit 0

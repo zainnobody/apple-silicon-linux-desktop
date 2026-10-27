@@ -1,0 +1,47 @@
+#!/bin/sh
+# SPDX-License-Identifier: MIT
+# distro-pack (agx): initramfs-tools hook for scripts/init-top/agx-asahi-firmware and
+# scripts/init-bottom/agx-asahi-firmware. It adds the modules and tools they use.
+# Port of the asahi-scripts dracut and mkinitcpio firmware hooks (MIT, The Asahi Linux
+# Contributors). The Apple firmware itself stays on the EFI partition, not in the initramfs.
+
+PREREQ=""
+prereqs() { echo "$PREREQ"; }
+case "$1" in
+prereqs)
+	prereqs
+	exit 0
+	;;
+esac
+
+# The tests point AGXFW_TEST_ROOT at a fake root. It is empty in a real build.
+R="${AGXFW_TEST_ROOT:-}"
+# shellcheck source=/dev/null
+. "$R/usr/share/initramfs-tools/hook-functions"
+
+# NVMe for the disk, FAT and its character sets for the EFI partition. Missing modules
+# (built into the kernel) are skipped.
+manual_add_modules apple-mailbox nvme-apple vfat nls_cp437 nls_iso8859_1 nls_ascii
+
+# klibc and some busybox builds do not have these tools, or not with the options the scripts use.
+for tool in blkid cpio tr cp; do
+	found=""
+	for dir in /usr/sbin /sbin /usr/bin /bin; do
+		if [ -x "$R$dir/$tool" ]; then
+			found="$dir/$tool"
+			break
+		fi
+	done
+	if [ -n "$found" ]; then
+		copy_exec "$found"
+	else
+		echo "W: agx-asahi-firmware: no $tool on this system; the Apple firmware may not load at boot" >&2
+	fi
+done
+
+# The Asahi kernel looks for firmware in /lib/firmware/vendor first. In the initramfs it points
+# at the unpacked files.
+mkdir -p "$DESTDIR/lib/firmware"
+if [ ! -e "$DESTDIR/lib/firmware/vendor" ] && [ ! -L "$DESTDIR/lib/firmware/vendor" ]; then
+	ln -s /vendorfw "$DESTDIR/lib/firmware/vendor"
+fi
