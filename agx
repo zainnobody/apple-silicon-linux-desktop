@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# agx: Apple silicon drivers for any Linux distro.
+# Phase 0: `agx detect` only. The other commands come in later phases (PLAN.md section 10).
+set -euo pipefail
+
+AGX_HOME="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/common.sh
+. "$AGX_HOME/lib/common.sh"
+# shellcheck source=lib/detect.sh
+. "$AGX_HOME/lib/detect.sh"
+
+usage() {
+	cat <<'EOF'
+Usage: agx <command>
+
+  detect [--json]   Read the Mac and the distro, print the install plan. Changes nothing.
+
+Not built yet: install, build-mesa, desktop, status, undo.
+
+Exit codes of detect: 0 ready, 2 unsupported Mac, 3 not Linux on Apple silicon,
+4 unknown distro family.
+EOF
+}
+
+cmd="${1:-}"
+[ $# -eq 0 ] || shift
+case "$cmd" in
+detect) agx_detect "$@" ;;
+install | build-mesa | desktop | status | undo)
+	echo "agx $cmd: not built yet. Run 'agx detect' to see the plan." >&2
+	exit 64
+	;;
+"" | -h | --help | help) usage ;;
+*)
+	usage >&2
+	exit 64
+	;;
+esac

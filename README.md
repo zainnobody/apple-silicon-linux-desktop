@@ -2,16 +2,43 @@
 
 Apple silicon drivers for any Linux distro. One tool, `agx`, installs the boot parts, the kernel, the drivers, the GPU stack and an optional Mac-like desktop on Ubuntu, Debian, Kali, Fedora or Arch.
 
-Status (2026-10-26): plan and verified results only. No code yet.
+Status (2026-10-26): phase 0. `agx detect` works. The install commands are not built yet.
 
-| File | Contents |
+## Try it
+
+On a Mac that runs Linux:
+
+```bash
+./agx detect
+```
+
+It reads the device tree, os-release and the running state. It prints the Mac, its support level, the distro backend and what `agx install` will do. It changes nothing and needs no root. Use `./agx detect --json` for machine-readable output.
+
+Exit codes: 0 ready, 2 unsupported Mac, 3 not Linux on Apple silicon, 4 unknown distro family.
+
+Run the tests (any Linux or macOS, bash 3.2 or newer):
+
+```bash
+tests/run.sh
+```
+
+## Layout
+
+| Path | Contents |
 |---|---|
-| `PLAN.md` | Goal, hard limits, chip coverage, layers, install paths, desktop, phases |
-| `STATUS.md` | Newest verified results on the reference Mac: OpenGL, Vulkan, memory, llama.cpp |
+| `agx` | The command |
+| `lib/` | Shared helpers and detection |
+| `backends/` | One file per distro family: Debian (Ubuntu, Kali), Fedora, Arch |
+| `data/socs.tsv` | Every M-series chip, its support level and its GPU path |
+| `data/boards.tsv` | Board lines that override the chip level (tested and expected Macs) |
+| `tests/run.sh` | Detection tests with fake root file systems |
+| `PLAN.md` | Goal, limits, chip coverage, layers, install paths, desktop, phases |
+| `STATUS.md` | Newest verified results on the reference Mac |
+| `COMPARE.md` | macOS against Linux on the same Mac |
 
 Reference Mac: MacBook Pro 16-inch M3 Pro (J516S), Fedora Asahi Remix 44, kernel `7.2.11-m3gpu+`.
 
-The working code is in the sibling repository `agx-linux-kit`: install stages, machine profiles, patches and tests. Phase 0 of the plan brings it here.
+The install stages, machine profiles, patches and tests that work today are in the sibling repository `agx-linux-kit`. The next step of phase 0 brings them here.
 
 ## Never in this repository
 

@@ -1,0 +1,4 @@
+# board	status	profile	note
+# A board line overrides the status of its SoC in socs.tsv.
+j516s	tested	j516s	MacBook Pro 16-inch M3 Pro: GPU, memory floor and desktop verified 2026-10-26
+j514s	expected	-	MacBook Pro 14-inch M3 Pro: same SoC and GPU driver as J516S; needs a profile and one test

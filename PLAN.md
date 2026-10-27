@@ -32,8 +32,29 @@ This project cannot change these limits. The pack must say them clearly and refu
 | M1 and M2 families | Asahi upstream (Fedora official, Ubuntu Asahi and Arch community) | Upstream Mesa, conformant OpenGL and Vulkan | Debian-family packages, the same desktop profile, the same `agx` tool |
 | M3 Pro 16-inch (J516S) | Asahi, no GPU | SiliconForest kernel and Mesa plus our patches. Tested 2026-10-26. | Everything. This is the reference machine. |
 | M3 Pro 14-inch (J514S) | Asahi, no GPU | The G15 driver names J514S. linux-aurora PR 202 fixed its GPU start. We did not test it. | A profile and one tester |
-| M3 and M3 Max (T8122, T6031) | Asahi, no GPU | m1n1 has files for them. The kernel G15 driver names only T6030. | Research first. 2D desktop until then. |
+| M3 Max (T6031, T6034) | Asahi, no GPU | The G15 driver has a T6031 path (GPU data from the device tree). It has no T6034 path. Not tested. | Research first. 2D desktop until then. |
+| M3 (T8122) | Asahi, no GPU | The G15 driver does not cover T8122 | Research first. 2D desktop until then. |
 | M3 Ultra, M4, M5 | None | None | Refuse with a clear message |
+
+The full table, one line per chip, is `data/socs.tsv`. Board lines that override it are in `data/boards.tsv`. `agx detect` reads both.
+
+### Why one pack covers a chip family
+
+Apple uses the same hardware blocks in many Macs. One Linux driver serves each block in every Mac that has it: the SSD controller, keyboard and trackpad, Wi-Fi and Bluetooth, speaker amplifiers, the system management controller and USB. Each Mac has its own device tree, which tells the kernel which blocks it has and where they are. The SiliconForest kernel tree has device trees for 44 Mac models, from the first M1 Macs to the M5 MacBook Air.
+
+Some parts change with each chip generation:
+
+- The GPU: M1, M2 and M3 each have a new GPU generation. M3 uses G15, and our GPU driver is for G15.
+- The display controller firmware and the power management coprocessor.
+- The boot environment. It changed with M4, so the Asahi installer cannot install Linux on M4 yet.
+
+Some parts change from Mac to Mac in one generation:
+
+- The device tree.
+- The GPU firmware build. The driver admits only builds that it knows.
+- The GPU board data: core count, memory areas, power states.
+
+So the M3 Pro 14-inch is very close to the tested 16-inch: same SoC, same GPU firmware family. The M3 Max and M3 have the same GPU generation, but a different GPU size and different board data. They need a driver path and a test. A device tree in the kernel tree does not mean that the Mac is supported.
 
 ## 4. Layers
 
@@ -142,7 +163,7 @@ The newest numbers, with their dates and sources, are in `STATUS.md`.
 
 | Phase | Work | Done when | Needs the user |
 |---|---|---|---|
-| 0 | Backend files and `agx detect`. Stages A to K stop calling Fedora tools directly. | `agx detect` is correct on the M3 in Fedora. Scripts pass shellcheck. | No |
+| 0 | Backend files and `agx detect`. Stages A to K stop calling Fedora tools directly. | `agx detect` is correct on the M3 in Fedora. Scripts pass shellcheck. | No. Detect and backends done 2026-10-26 (correct on the M3, 12 of 12 tests, shellcheck clean). The stage port is next. |
 | 1 | Kernel packages: .deb, .rpm and Arch from one tree | All three build. The .rpm installs on Fedora and boots. | One reboot |
 | 2 | Ubuntu 26.04 on the M3 by Path B. initramfs-tools hook. Mesa build on Ubuntu. | Ubuntu boots on our kernel. GPU tests, Wi-Fi, Bluetooth, audio and keyboard pass. | Go for the subvolume, reboots |
 | 3 | Kali by Path B | The same tests pass on Kali | Reboots |

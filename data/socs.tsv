@@ -1,0 +1,20 @@
+# soc	chip	status	gpu
+# status: tested | expected | upstream | base-only | unsupported (see lib/detect.sh)
+# gpu: the GPU path the pack uses on this chip
+t8103	M1	upstream	Asahi GPU driver and distro Mesa
+t6000	M1 Pro	upstream	Asahi GPU driver and distro Mesa
+t6001	M1 Max	upstream	Asahi GPU driver and distro Mesa
+t6002	M1 Ultra	upstream	Asahi GPU driver and distro Mesa
+t8112	M2	upstream	Asahi GPU driver and distro Mesa
+t6020	M2 Pro	upstream	Asahi GPU driver and distro Mesa
+t6021	M2 Max	upstream	Asahi GPU driver and distro Mesa
+t6022	M2 Ultra	upstream	Asahi GPU driver and distro Mesa
+t8122	M3	base-only	none yet: the G15 driver does not cover T8122
+t6030	M3 Pro	expected	G15 driver (asahi-g15) and the SiliconForest Mesa, built on the Mac
+t6031	M3 Max (16 CPU cores)	base-only	none yet: the G15 driver has a T6031 path, not tested
+t6034	M3 Max (14 CPU cores)	base-only	none yet: not in the G15 driver
+t6032	M3 Ultra	unsupported	none: Asahi does not support this Mac
+t8132	M4	unsupported	none: no Asahi installer for M4
+t8140	T8140 (MacBook Neo)	unsupported	none: no Asahi installer
+t8142	M5	unsupported	none: no Asahi installer for M5
+t8152	T8152 (named M6 in the kernel tree)	unsupported	none: no Asahi installer
