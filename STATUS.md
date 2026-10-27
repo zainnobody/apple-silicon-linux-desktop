@@ -4,7 +4,7 @@ Reference Mac: MacBook Pro 16-inch M3 Pro (Mac15,7, J516S, SoC T6030, chip revis
 
 Stack: kernel `7.2.11-m3gpu+` (SiliconForest `0e1f466` plus our patches), m1n1 `aca1258`, Mesa 26.3.0-devel (SiliconForest `7515336`) in `/opt/mesa-m3`.
 
-Last update: 2026-10-26 23:50 (M3 time, PDT). All times below are PDT on 2026-10-26.
+Last update: 2026-10-27 01:00 (M3 time, PDT). Times below are PDT on 2026-10-26, unless a row says 2026-10-27.
 
 ## 1. Full check on the default boot (22:49 to 22:52)
 
@@ -54,6 +54,8 @@ The coordinator session's health check on the 21:59 boot gave the same memory sp
 | Vulkan compute stress (`tests/vk-stress.c`), 10 s, desktop idle | Pass: 0 wrong values in 251 checks. 104.9 G pixel-iterations/s (79 % of macOS Metal). | Before 23:21 |
 | Vulkan compute stress, 600 s, desktop in use | Pass: 0 wrong values in 6,587 checks. 46.0 G pixel-iterations/s: the speed dropped at 30 s while other programs used the GPU. Not a speed reference. | 23:21 to 23:31 |
 | **GPU fault** during that run | A desktop render job (plasmashell) read an unmapped GPU address at 23:22:53. The kernel recovered. Then Mesa crashed in `agx_batch_init` instead of reporting a lost context, so the desktop shell died. The first GPU fault in 8 GPU boots. The GPU session owns the fix. | 23:22 |
+| Vulkan compute stress, 600 s, desktop idle, no other GPU program (2026-10-27, GPU session) | Pass: 0 wrong values in 6,790 checks. 113.2 frames/s, 47.5 G pixel-iterations/s. 233 frames/s for the first 30 s, then about 105. The cause is the GPU clock state between the CPU checks (see `COMPARE.md`). | 00:35 to 00:45 |
+| GPU suite, desktop idle (2026-10-27, agx-linux-kit commit `956cbf0`) | Vulkan compute with no stops: 255.5 G. Fragment shader: 226.1 G, 0 wrong. GPU memory read: 133.6 best, 126.6 mean GB/s. `glmark2-wayland` 1920x1080 window: score 3192. 0 kernel GPU faults. | 00:12 |
 
 ## 3. Memory: before and after the floor patch
 
@@ -92,7 +94,8 @@ The "with the patch" column comes from `tests/mem-shared.sh` with the OpenMP bui
 
 ## 6. Open items that can change these numbers
 
-- Run `vk-stress 600` again with no other GPU program.
+- Run `metal-stress` with no checks in macOS, for a fair peak GPU compute pair (needs a macOS boot).
+- Test boot with `asahi.g15_idle_standby_us=100000` (GPU session, stage M): it can change the GPU clock under stop-and-go loads.
 - Fix the GPU render fault and the Mesa crash after a lost context (GPU session).
 - Install the flash attention patch in `/opt/mesa-m3`.
 - Run the full desktop glmark2 test (needs a desktop login).

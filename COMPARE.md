@@ -1,6 +1,6 @@
 # macOS against Linux on the same Mac
 
-Status (2026-10-26 23:50): memory and GPU compute are measured on both systems. 7-Zip is measured on Linux only. llama.cpp is not measured in macOS yet.
+Status (2026-10-27 01:00): memory and GPU compute are measured on both systems. The clean 600 s GPU compute run is in. 7-Zip is measured on Linux only. llama.cpp is not measured in macOS yet.
 
 ## 1. Why the same Mac
 
@@ -76,10 +76,18 @@ Do not read this as "Linux is 1.7 times faster". The two programs use different 
 | Linux | Vulkan compute | 10 s, desktop idle | 250.0 | 104.9 | 79 % | 0 in 251 checks |
 | Linux | Vulkan compute | 600 s, desktop in use: first 30 s | 201.7 | 84.6 | 64 % | 0 |
 | Linux | Vulkan compute | 600 s, desktop in use: 30 to 600 s | 104.9 | 44.0 | 33 % | 0 in 6,587 checks (whole run) |
+| Linux | Vulkan compute | 600 s, desktop idle, no other GPU program: first 30 s | 233.0 | 97.7 | 74 % | 0 |
+| Linux | Vulkan compute | 600 s, desktop idle, no other GPU program: whole run | 113.2 | 47.5 | 36 % | 0 in 6,790 checks |
 
-**Result: Linux compute reaches about 79 % of the macOS speed.** This is the best figure: the 10 s run on an idle desktop. Use it until a clean 600 s run exists. The fragment shader version of the same math runs faster on Linux (228 G), so the gap is in the compute path, not in the GPU hardware.
+**Result: with the same test pattern, Linux gives 74 to 79 % of the macOS speed for the first 30 s, and 36 % over 600 s.** The clean 600 s run (2026-10-27 00:35, GPU session) had no other GPU program and an idle desktop. The speed still dropped after 30 s, from 233 to about 105 frames/s. So other programs did not cause the drop.
 
-**Correction.** An earlier version of this file said that Linux compute runs at one third of the macOS speed. That value came from the 600 s run while the desktop was in use: Firefox, LibrePods, plasmashell and other programs also used the GPU. The speed dropped at about 30 s (23:22:08). A desktop GPU fault came later, at 23:22:53, so the fault did not cause the drop. The cause is not known yet: other programs on the GPU, or a GPU power or clock state in long compute runs. A clean 600 s run with no other GPU program is still open.
+**Cause: the GPU clock, not the GPU speed.** The test stops the GPU on every 10th frame and checks 21,904 values on the CPU (17 to 27 ms). Between these bursts, the firmware lowers the GPU clock to 338 to 796 MHz instead of 1380 MHz. The driver gives the firmware the same clock controller values that macOS gives. With no stop (`VK_STRESS_CHECK_EVERY=0`, 60 s), Linux computes 255.5 G, and the GPU stays at 1380 MHz (agx-linux-kit commit `956cbf0`, `docs/performance.md`, "What limits this test").
+
+Do not read 255.5 G as "Linux is 1.9 times faster". macOS ran only the version with stops. A fair peak comparison needs `metal-stress` with no checks in macOS, and that needs a macOS boot. What the data shows: the GPU hardware is not the limit on Linux. Under a stop-and-go load, the Linux clock control keeps the GPU slower than macOS does. A test boot with `asahi.g15_idle_standby_us=100000` (GPU session, stage M) can change this.
+
+During the clean run, one failed suspend try happened (00:38:59). The speed was the same before and after it. The full log is in the GPU session; agx-linux-kit does not have it yet.
+
+**History of this figure.** A first version of this file said one third of the macOS speed, from the 600 s run with the desktop in use. A second version called that wrong and gave 79 %, from the 10 s run, because it blamed the other GPU programs for the drop. The clean run of 2026-10-27 shows that both figures are correct for their run length: about 75 % for short runs and about one third for 600 s runs. The other programs did not cause the drop. The GPU clock state did. The desktop GPU fault at 23:22:53 came after the drop (23:22:08), so it did not cause the drop either.
 
 The macOS run slowed down after 450 s (19.7 frames/s from 450 s to 740 s), probably because other macOS tests ran at that time. Its full-run average of 84.0 G is not used.
 
@@ -107,7 +115,7 @@ Public reference (not this Mac, not this model): the llama.cpp Apple silicon tab
 |---|---|
 | llama.cpp with Metal on the same models | macOS on the M3 has no developer tools, so it cannot build llama.cpp. |
 | 7-Zip benchmark in macOS | The macOS visits are over. Linux has a value (section 3). |
-| Clean 600 s Vulkan compute run | The first 600 s run shared the GPU with desktop programs. Run `vk-stress 600` again with no other GPU program. |
+| GPU compute with no checks in macOS (`metal-stress`, no stops) | Needs a macOS boot. It gives the fair peak pair for the Linux 255.5 G. |
 | GPU memory read in macOS | Needs a Metal version of `vk-bandwidth` |
 
 The user said the macOS visit at 22:20 was probably the last one. macOS has about 26 GB free.
