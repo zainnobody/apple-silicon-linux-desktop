@@ -1,6 +1,6 @@
 # macOS against Linux on the same Mac
 
-Status (2026-10-26 23:05): memory and GPU compute are measured on both systems. llama.cpp and 7-Zip are not measured in macOS yet.
+Status (2026-10-26 23:40): memory and GPU compute are measured on both systems. llama.cpp and 7-Zip are not measured in macOS yet.
 
 ## 1. Why the same Mac
 
@@ -66,7 +66,18 @@ Each pixel of 1024x1024 runs 400 xorshift steps. Every 10th frame is checked aga
 | macOS | `tests/metal-stress.swift` (compute kernel), steady part 0 to 450 s | 316.9 | 132.9 | 0 in 14,831 checks |
 | Linux | `tests/gles-stress.c` (fragment shader), 600 s | 543.7 | 228.0 | 0 in 32,621 checks |
 
-Do not read this as "Linux is 1.7 times faster". The two programs use different GPU paths: a compute kernel on macOS and a fragment shader on Linux. A fair pair needs the same shader type on both. The macOS run also slowed down after 450 s (19.7 frames/s from 450 s to 740 s), probably because other macOS tests ran at that time. The full-run average of 84.0 G is therefore not used.
+Do not read this as "Linux is 1.7 times faster". The two programs use different GPU paths: a compute kernel on macOS and a fragment shader on Linux.
+
+**Same shader type (fair pair).** The GPU session wrote `tests/vk-stress.c`: the Metal kernel as a Vulkan compute shader, with the same math, grid, group size and checks (agx-linux-kit commit `de0203a`). Run on the M3 from 23:21 to 23:31, 600 s:
+
+| System | Program | Part of the run | Frames/s | G pixel-iterations/s | Wrong values |
+|---|---|---|---|---|---|
+| macOS | Metal compute | 0 to 450 s | 316.9 | 132.9 | 0 |
+| Linux | Vulkan compute | 0 to 30 s | 201.7 | 84.6 | 0 |
+| Linux | Vulkan compute | 30 to 600 s | 104.9 | 44.0 | 0 |
+| Linux | Vulkan compute | Full 600 s | 109.8 | 46.0 | 0 in 6,587 checks |
+
+**Finding: Linux compute shaders run at about one third of the macOS speed** (44.0 against 132.9 G, steady part). The first 30 s reach 64 % of macOS, then the speed halves. The cause is not known yet. During this run, at 23:22:53, a desktop render job had a GPU fault and the desktop shell crashed (see `STATUS.md`). So this run is not a clean measurement. It must run again on an idle desktop. The fragment shader path is much faster (228 G), so the gap is in the compute path, not in the GPU hardware. The macOS run also slowed down after 450 s (19.7 frames/s from 450 s to 740 s), probably because other macOS tests ran at that time. The full-run average of 84.0 G is therefore not used.
 
 ### llama.cpp
 
@@ -83,7 +94,7 @@ Public reference (not this Mac, not this model): the llama.cpp Apple silicon tab
 |---|---|
 | llama.cpp with Metal on the same models | macOS on the M3 has no developer tools, so it cannot build llama.cpp. |
 | 7-Zip benchmark (`7zz b`) | Not run on either system |
-| Same shader type for GPU compute | Needs a Vulkan compute version of the xorshift test on Linux, or a fragment version on macOS |
+| Clean Vulkan compute run | The first run overlapped a desktop GPU fault. Run `vk-stress 600` again on an idle desktop. |
 | GPU memory read in macOS | Needs a Metal version of `vk-bandwidth` |
 
 The user said the macOS visit at 22:20 was probably the last one. macOS has about 26 GB free.

@@ -4,7 +4,7 @@ Reference Mac: MacBook Pro 16-inch M3 Pro (Mac15,7, J516S, SoC T6030, chip revis
 
 Stack: kernel `7.2.11-m3gpu+` (SiliconForest `0e1f466` plus our patches), m1n1 `aca1258`, Mesa 26.3.0-devel (SiliconForest `7515336`) in `/opt/mesa-m3`.
 
-Last update: 2026-10-26 23:05 (M3 time, PDT). All times below are PDT on 2026-10-26.
+Last update: 2026-10-26 23:40 (M3 time, PDT). All times below are PDT on 2026-10-26.
 
 ## 1. Full check on the default boot (22:49 to 22:52)
 
@@ -51,6 +51,8 @@ The coordinator session's health check on the 21:59 boot gave the same memory sp
 | Idle soak, 60 min | Pass. Readback 3 of 3 after it. 0 kernel GPU or display problems. | 13:57 to 14:57 |
 | Load soak, 60 min | 228.17 G pixel-iterations/s for the full hour, 0 wrong values in 195,843 checks | 14:57 to 15:57 |
 | glmark2-es2-wayland, 1280x800 (partial run) | 3,266 to 3,562 FPS on the texture and shading scenes, no GPU errors | 13:41 |
+| Vulkan compute stress (`tests/vk-stress.c`), 600 s | Pass: 0 wrong values in 6,587 checks. 46.0 G pixel-iterations/s (44.0 after the first 30 s). | 23:21 to 23:31 |
+| **GPU fault** during that run | A desktop render job (plasmashell) read an unmapped GPU address at 23:22:53. The kernel recovered. Then Mesa crashed in `agx_batch_init` instead of reporting a lost context, so the desktop shell died. The first GPU fault in 8 GPU boots. The GPU session owns the fix. | 23:22 |
 
 ## 3. Memory: before and after the floor patch
 
