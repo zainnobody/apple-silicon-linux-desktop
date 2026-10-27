@@ -1,6 +1,6 @@
 # macOS against Linux on the same Mac
 
-Status (2026-10-26 23:00): memory and GPU compute are measured on both systems. llama.cpp and 7-Zip are not measured in macOS yet.
+Status (2026-10-26 23:05): memory and GPU compute are measured on both systems. llama.cpp and 7-Zip are not measured in macOS yet.
 
 ## 1. Why the same Mac
 
@@ -18,19 +18,34 @@ The distro does not change these numbers. Ubuntu or Kali with the same kernel an
 
 ## 3. Results
 
-### CPU memory read: same program on both systems
+### CPU memory read: same test on both systems
 
-`tests/cpu-bw.c`, pthreads build, 1 GiB array, 5 runs, threads not pinned. macOS: final macOS visit, 2026-10-26 22:20 to 22:40. Linux: 2026-10-26 22:54, default boot.
+`tests/cpu-bw.c`, pthreads build, 1 GiB array, 5 runs.
+
+- macOS: clang build of the old source, final macOS visit (2026-10-26 22:20 to 22:40). The old source sums with one add chain, but clang splits that chain into several chains. So the macOS values measure memory. They cannot be measured again with the new source, because the macOS visits are over.
+- Linux: gcc 16.2.1 build of the new source with four add chains (agx-linux-kit commit `3fa1a67`). Run at 23:02 on the default boot.
 
 | Threads | macOS best / mean (GB/s) | Linux best / mean (GB/s) | Linux as a share of macOS (mean) |
 |---|---|---|---|
-| 1 | 83.1 / 60.7 | 20.2 / 20.1 | 33 % |
-| 6 | 125.1 / 121.0 | 97.4 / 97.0 | 80 % |
-| 12 | 116.9 / 115.9 | 109.3 / 107.1 | 92 % |
+| 1, not pinned | 83.1 / 60.7 | 65.2 / 55.7 | 92 % |
+| 6, not pinned | 125.1 / 121.0 | 107.6 / 105.8 | 87 % |
+| 12 | 116.9 / 115.9 | 108.7 / 106.7 | 92 % |
 
-Extra Linux runs (same program): one thread on a P core 18.7 mean, one thread on an E core 15.0 mean, six threads on the P cores 105.7 mean.
+More Linux runs with the new source:
 
-**Finding: one thread reads memory 3 times slower on Linux.** Pinning the thread to a P core does not help. Many threads together almost reach macOS, because the memory floor raised the shared limit. The cause of the one-thread limit is not known yet. Candidates: no per-cluster memory performance vote from the CPU frequency driver, or different hardware prefetch settings than macOS uses.
+| Run | Linux best / mean (GB/s) |
+|---|---|
+| 1 thread on P core 7 (this run) | 65.3 / 59.0 (97 % of the macOS mean) |
+| 6 threads on the P cores (this run) | 117.5 / 96.8 |
+| 1 thread on a P core (GPU session) | 60.2 / 52.0 |
+| 6 threads on the P cores (GPU session) | 117.0 / 107.9 |
+| 12 threads (GPU session) | 109.6 / 101.7 |
+
+Other sessions were active during this run (load average 1.2). The means change by about 10 % from run to run.
+
+**Correction.** An earlier version of this file said that one thread reads memory 3 times slower on Linux (20 GB/s). That was a fault in the test, not in Linux. gcc kept the old sum loop as one chain of dependent adds, and the add time limited one thread to about 20 GB/s.
+
+**Remaining gap:** with one thread, the Linux mean is 3 to 14 % below macOS, depending on the run. The best value is about 20 % lower (65 against 83 GB/s). One possible cause is the P core clock under the `schedutil` governor. This is not proven.
 
 Before the memory floor patch, Linux read about 32 GB/s with 6 or 12 threads.
 
@@ -92,5 +107,5 @@ Way A is exact. Way B needs no restart, but the public table uses a llama.cpp bu
 
 - macOS logs: `private-dumps/macos-final-2026-10-27/` on the host (`cpu-bw.log`, `metal-600s.log`, `macos-tests.log`). Private folder, never shared.
 - The same macOS numbers in `agx-linux-kit/docs/performance.md` (agx-linux-kit commit `c0e917a`). That file still lists the Linux one-thread value as "not measured". The value is in section 3 above.
-- Linux: `STATUS.md` (22:49 run) and the `cpu-bw-pt` runs at 22:54
+- Linux: `STATUS.md` (22:49 run) and the four-chain `cpu-bw` runs at 23:02 (source SHA-256 starts `d212af6c`)
 - [llama.cpp: Performance of llama.cpp on Apple Silicon M-series](https://github.com/ggml-org/llama.cpp/discussions/4167)

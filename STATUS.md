@@ -4,7 +4,7 @@ Reference Mac: MacBook Pro 16-inch M3 Pro (Mac15,7, J516S, SoC T6030, chip revis
 
 Stack: kernel `7.2.11-m3gpu+` (SiliconForest `0e1f466` plus our patches), m1n1 `aca1258`, Mesa 26.3.0-devel (SiliconForest `7515336`) in `/opt/mesa-m3`.
 
-Last update: 2026-10-26 23:00 (M3 time, PDT). All times below are PDT on 2026-10-26.
+Last update: 2026-10-26 23:05 (M3 time, PDT). All times below are PDT on 2026-10-26.
 
 ## 1. Full check on the default boot (22:49 to 22:52)
 
@@ -61,7 +61,9 @@ The coordinator session's health check on the 21:59 boot gave the same memory sp
 | All 12 cores | 32.2 | 108.6 | 115.9 mean, 116.9 best |
 | GPU | 31.1 | 131.4 | Not measured |
 
-macOS values: final macOS visit, 22:20 to 22:40. The fair comparison with the same program and settings on both systems is in `COMPARE.md`. It also shows a gap: one thread reads 20 GB/s on Linux and 61 GB/s (mean) in macOS.
+macOS values: final macOS visit, 22:20 to 22:40. The fair comparison with the same test on both systems is in `COMPARE.md`. With the corrected test (four add chains, 23:02), one thread reads 55.7 GB/s (mean) on Linux and 60.7 GB/s in macOS.
+
+The "with the patch" column comes from `tests/mem-shared.sh` with the OpenMP build of the old `cpu-bw.c`. The new source gives different means: 6 P-core threads 96.8 to 107.9 GB/s (against 126.2), and 12 threads 101.7 to 106.7 GB/s (against 108.6).
 
 ## 4. llama.cpp history
 
