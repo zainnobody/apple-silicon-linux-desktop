@@ -63,7 +63,7 @@ The coordinator session's health check on the 21:59 boot gave the same memory sp
 
 macOS values: final macOS visit, 22:20 to 22:40. The fair comparison with the same test on both systems is in `COMPARE.md`. With the corrected test (four add chains, 23:02), one thread reads 55.7 GB/s (mean) on Linux and 60.7 GB/s in macOS.
 
-The "with the patch" column comes from `tests/mem-shared.sh` with the OpenMP build of the old `cpu-bw.c`. The new source gives different means: 6 P-core threads 96.8 to 107.9 GB/s (against 126.2), and 12 threads 101.7 to 106.7 GB/s (against 108.6).
+The "with the patch" column comes from `tests/mem-shared.sh` with the OpenMP build of the old `cpu-bw.c`. In that build each thread has its own add chain, so the one-chain fault did not affect it. The GPU session ran it again with the four-chain OpenMP build (agx-linux-kit commit `d48bc6c`): P cores 125.1, E cores 64.6, all 12 cores 110.8, GPU 129.9 GB/s (mean). These values match, so the column stays valid. The pthreads build gives lower 6-thread means (96.8 to 107.9 GB/s).
 
 ## 4. llama.cpp history
 

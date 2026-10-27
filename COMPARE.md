@@ -45,7 +45,9 @@ Other sessions were active during this run (load average 1.2). The means change 
 
 **Correction.** An earlier version of this file said that one thread reads memory 3 times slower on Linux (20 GB/s). That was a fault in the test, not in Linux. gcc kept the old sum loop as one chain of dependent adds, and the add time limited one thread to about 20 GB/s.
 
-**Remaining gap:** with one thread, the Linux mean is 3 to 14 % below macOS, depending on the run. The best value is about 20 % lower (65 against 83 GB/s). One possible cause is the P core clock under the `schedutil` governor. This is not proven.
+**Remaining gap:** with one thread, the Linux mean is 3 to 14 % below macOS, depending on the run. The best value is about 20 % lower (65 against 83 GB/s).
+
+The clock and the memory path of one core are not the limit. The GPU session ran several threads on one P core: it read 82.5 to 82.8 GB/s (mean) with the `schedutil` governor and with the `performance` governor (agx-linux-kit commit `7f52748`). That equals the macOS one-thread best (83.1 GB/s). So the gap comes from how one thread issues its reads. A true one-thread run with the `performance` governor was not done.
 
 Before the memory floor patch, Linux read about 32 GB/s with 6 or 12 threads.
 
