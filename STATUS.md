@@ -4,7 +4,7 @@ Reference Mac: MacBook Pro 16-inch M3 Pro (Mac15,7, J516S, SoC T6030, chip revis
 
 Stack: kernel `7.2.11-m3gpu+` (SiliconForest `0e1f466` plus our patches), m1n1 `aca1258`, Mesa 26.3.0-devel (SiliconForest `7515336`) in `/opt/mesa-m3`.
 
-Last update: 2026-10-26 23:40 (M3 time, PDT). All times below are PDT on 2026-10-26.
+Last update: 2026-10-26 23:50 (M3 time, PDT). All times below are PDT on 2026-10-26.
 
 ## 1. Full check on the default boot (22:49 to 22:52)
 
@@ -51,7 +51,8 @@ The coordinator session's health check on the 21:59 boot gave the same memory sp
 | Idle soak, 60 min | Pass. Readback 3 of 3 after it. 0 kernel GPU or display problems. | 13:57 to 14:57 |
 | Load soak, 60 min | 228.17 G pixel-iterations/s for the full hour, 0 wrong values in 195,843 checks | 14:57 to 15:57 |
 | glmark2-es2-wayland, 1280x800 (partial run) | 3,266 to 3,562 FPS on the texture and shading scenes, no GPU errors | 13:41 |
-| Vulkan compute stress (`tests/vk-stress.c`), 600 s | Pass: 0 wrong values in 6,587 checks. 46.0 G pixel-iterations/s (44.0 after the first 30 s). | 23:21 to 23:31 |
+| Vulkan compute stress (`tests/vk-stress.c`), 10 s, desktop idle | Pass: 0 wrong values in 251 checks. 104.9 G pixel-iterations/s (79 % of macOS Metal). | Before 23:21 |
+| Vulkan compute stress, 600 s, desktop in use | Pass: 0 wrong values in 6,587 checks. 46.0 G pixel-iterations/s: the speed dropped at 30 s while other programs used the GPU. Not a speed reference. | 23:21 to 23:31 |
 | **GPU fault** during that run | A desktop render job (plasmashell) read an unmapped GPU address at 23:22:53. The kernel recovered. Then Mesa crashed in `agx_batch_init` instead of reporting a lost context, so the desktop shell died. The first GPU fault in 8 GPU boots. The GPU session owns the fix. | 23:22 |
 
 ## 3. Memory: before and after the floor patch
@@ -80,8 +81,19 @@ The "with the patch" column comes from `tests/mem-shared.sh` with the OpenMP bui
 - The installed Mesa does not have the flash attention patch yet. Use `-fa 0` with it.
 - The GPU is 2.1 times faster than the CPU for prompts (8B). For token generation, the CPU is still a little faster (24.5 against 22.7 tokens/s).
 
-## 5. Open items that can change these numbers
+## 5. CPU: 7-Zip
 
+`7z b`, 7-Zip 26.04, 23:32 (agx-linux-kit commit `eef73e1`).
+
+| Threads | Compress (MIPS) | Decompress (MIPS) | Total rating (MIPS) |
+|---|---|---|---|
+| All 12 | 90,284 | 51,495 | 70,889 |
+| 1 | 9,321 | 6,463 | 7,892 |
+
+## 6. Open items that can change these numbers
+
+- Run `vk-stress 600` again with no other GPU program.
+- Fix the GPU render fault and the Mesa crash after a lost context (GPU session).
 - Install the flash attention patch in `/opt/mesa-m3`.
 - Run the full desktop glmark2 test (needs a desktop login).
 - Run the same tests in macOS (see `COMPARE.md`).

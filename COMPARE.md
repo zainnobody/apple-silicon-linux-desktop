@@ -1,6 +1,6 @@
 # macOS against Linux on the same Mac
 
-Status (2026-10-26 23:40): memory and GPU compute are measured on both systems. llama.cpp and 7-Zip are not measured in macOS yet.
+Status (2026-10-26 23:50): memory and GPU compute are measured on both systems. 7-Zip is measured on Linux only. llama.cpp is not measured in macOS yet.
 
 ## 1. Why the same Mac
 
@@ -68,16 +68,29 @@ Each pixel of 1024x1024 runs 400 xorshift steps. Every 10th frame is checked aga
 
 Do not read this as "Linux is 1.7 times faster". The two programs use different GPU paths: a compute kernel on macOS and a fragment shader on Linux.
 
-**Same shader type (fair pair).** The GPU session wrote `tests/vk-stress.c`: the Metal kernel as a Vulkan compute shader, with the same math, grid, group size and checks (agx-linux-kit commit `de0203a`). Run on the M3 from 23:21 to 23:31, 600 s:
+**Same shader type (fair pair).** The GPU session wrote `tests/vk-stress.c`: the Metal kernel as a Vulkan compute shader, with the same math, 16x16 groups and checks (agx-linux-kit commits `de0203a` and `5ab61ed`).
 
-| System | Program | Part of the run | Frames/s | G pixel-iterations/s | Wrong values |
-|---|---|---|---|---|---|
-| macOS | Metal compute | 0 to 450 s | 316.9 | 132.9 | 0 |
-| Linux | Vulkan compute | 0 to 30 s | 201.7 | 84.6 | 0 |
-| Linux | Vulkan compute | 30 to 600 s | 104.9 | 44.0 | 0 |
-| Linux | Vulkan compute | Full 600 s | 109.8 | 46.0 | 0 in 6,587 checks |
+| System | Program | Run | Frames/s | G pixel-iterations/s | Share of macOS | Wrong values |
+|---|---|---|---|---|---|---|
+| macOS | Metal compute | 0 to 450 s of a 600 s run | 316.9 | 132.9 | 100 % | 0 in 14,831 checks |
+| Linux | Vulkan compute | 10 s, desktop idle | 250.0 | 104.9 | 79 % | 0 in 251 checks |
+| Linux | Vulkan compute | 600 s, desktop in use: first 30 s | 201.7 | 84.6 | 64 % | 0 |
+| Linux | Vulkan compute | 600 s, desktop in use: 30 to 600 s | 104.9 | 44.0 | 33 % | 0 in 6,587 checks (whole run) |
 
-**Finding: Linux compute shaders run at about one third of the macOS speed** (44.0 against 132.9 G, steady part). The first 30 s reach 64 % of macOS, then the speed halves. The cause is not known yet. During this run, at 23:22:53, a desktop render job had a GPU fault and the desktop shell crashed (see `STATUS.md`). So this run is not a clean measurement. It must run again on an idle desktop. The fragment shader path is much faster (228 G), so the gap is in the compute path, not in the GPU hardware. The macOS run also slowed down after 450 s (19.7 frames/s from 450 s to 740 s), probably because other macOS tests ran at that time. The full-run average of 84.0 G is therefore not used.
+**Result: Linux compute reaches about 79 % of the macOS speed.** This is the best figure: the 10 s run on an idle desktop. Use it until a clean 600 s run exists. The fragment shader version of the same math runs faster on Linux (228 G), so the gap is in the compute path, not in the GPU hardware.
+
+**Correction.** An earlier version of this file said that Linux compute runs at one third of the macOS speed. That value came from the 600 s run while the desktop was in use: Firefox, LibrePods, plasmashell and other programs also used the GPU. The speed dropped at about 30 s (23:22:08). A desktop GPU fault came later, at 23:22:53, so the fault did not cause the drop. The cause is not known yet: other programs on the GPU, or a GPU power or clock state in long compute runs. A clean 600 s run with no other GPU program is still open.
+
+The macOS run slowed down after 450 s (19.7 frames/s from 450 s to 740 s), probably because other macOS tests ran at that time. Its full-run average of 84.0 G is not used.
+
+### 7-Zip benchmark (Linux only)
+
+`7z b`, 7-Zip 26.04, 2026-10-26 23:32, on the M3 in Linux (agx-linux-kit commit `eef73e1`). There is no macOS value, because the macOS visits are over.
+
+| Threads | Compress (MIPS) | Decompress (MIPS) | Total rating (MIPS) |
+|---|---|---|---|
+| All 12 | 90,284 | 51,495 | 70,889 |
+| 1 | 9,321 | 6,463 | 7,892 |
 
 ### llama.cpp
 
@@ -93,8 +106,8 @@ Public reference (not this Mac, not this model): the llama.cpp Apple silicon tab
 | Test | Why it is missing |
 |---|---|
 | llama.cpp with Metal on the same models | macOS on the M3 has no developer tools, so it cannot build llama.cpp. |
-| 7-Zip benchmark (`7zz b`) | Not run on either system |
-| Clean Vulkan compute run | The first run overlapped a desktop GPU fault. Run `vk-stress 600` again on an idle desktop. |
+| 7-Zip benchmark in macOS | The macOS visits are over. Linux has a value (section 3). |
+| Clean 600 s Vulkan compute run | The first 600 s run shared the GPU with desktop programs. Run `vk-stress 600` again with no other GPU program. |
 | GPU memory read in macOS | Needs a Metal version of `vk-bandwidth` |
 
 The user said the macOS visit at 22:20 was probably the last one. macOS has about 26 GB free.
