@@ -79,6 +79,8 @@ check fedora 0 fedora -- build-kernel -- \
 check arch 0 arch -- build-kernel -- \
 	"as .pkg.tar.zst (pacman-pkg)" "PACMAN_PKGBASE=linux-agx PACMAN_EXTRAPACKAGES=headers INSTALL_MOD_STRIP=1 pacman-pkg" \
 	"linux-agx-[0-9]*.pkg.tar.zst" "linux-agx-headers-*.pkg.tar.zst" ! "bindeb-pkg"
+check fedora-nodeps 0 fedora AGX_RPM_NODEPS=1 -- build-kernel -- "-j8 RPMOPTS=--nodeps binrpm-pkg" "elfutils-devel"
+check fedora-deps 0 fedora -- build-kernel -- "-j8 binrpm-pkg" ! "--nodeps"
 check family-flag 0 macos -- build-kernel --family arch -- "pacman-pkg"
 check no-family 1 macos -- build-kernel -- "unknown package family"
 check bad-arg 1 kali -- build-kernel --fast -- "build-kernel takes --src DIR"

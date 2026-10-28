@@ -48,8 +48,11 @@ bk_boot_entry_id() {
 
 # Kernel package (make binrpm-pkg). Only the kernel package is installed, not kernel-headers or
 # kernel-devel: the distro's kernel-headers package belongs to the C library.
-BACKEND_BUILD_DEPS="gcc make flex bison bc perl rsync kmod cpio dwarves elfutils-libelf-devel openssl-devel rpm-build rust rust-src bindgen-cli clang lld"
-bk_kernel_make_vars() { :; }
+BACKEND_BUILD_DEPS="gcc make flex bison bc perl rsync kmod cpio dwarves elfutils-libelf-devel elfutils-devel openssl-devel rpm-build rust rust-src bindgen-cli clang lld"
+# AGX_RPM_NODEPS=1: skip rpmbuild's BuildRequires check, on a host where the build user cannot
+# install packages. The spec asks for elfutils-devel, which only BTF and gendwarfksyms use (both off
+# in the M3 config). A tool that is really missing still stops the compile.
+bk_kernel_make_vars() { [ "${AGX_RPM_NODEPS:-0}" != 1 ] || printf 'RPMOPTS=--nodeps'; }
 bk_kernel_pkg_out() { printf "'%s'/rpmbuild/RPMS/aarch64/kernel-[0-9]*.rpm" "$1"; }
 bk_kernel_pkg_file() { newest_file "$AGX_PKG_DIR" "kernel-$(printf '%s' "$1" | tr - _)-*.aarch64.rpm"; }
 bk_dtb_dir() { printf '/usr/lib/modules/%s/dtb' "$1"; }
