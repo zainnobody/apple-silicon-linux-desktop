@@ -80,6 +80,10 @@ check_config() {
 		val="${line#*=}"
 		if [ "$val" = n ]; then
 			! grep -qE "^CONFIG_$name=(y|m)$" "$cfg" || { echo "CONFIG CHECK FAILED: CONFIG_$name is on" >&2; bad=1; }
+		elif [ "$val" = '""' ] && ! grep -q "^CONFIG_$name=" "$cfg"; then
+			# An empty string also holds when the setting is absent: its dependency is off (for
+			# example SYSTEM_REVOCATION_KEYS without SYSTEM_REVOCATION_LIST), so it names no file.
+			:
 		else
 			grep -qxF "CONFIG_$name=$val" "$cfg" || { echo "CONFIG CHECK FAILED: wanted CONFIG_$name=$val" >&2; bad=1; }
 		fi

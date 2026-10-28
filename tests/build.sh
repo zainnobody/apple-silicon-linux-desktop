@@ -181,6 +181,11 @@ check config-usb4 1 kali -- build-kernel --check-config "$TMP/nousb4.config" -- 
 sed 's/^CONFIG_LOCALVERSION=.*/CONFIG_LOCALVERSION="-m3gpu"/' "$good" > "$TMP/lv.config"
 check config-localversion 1 kali -- build-kernel --check-config "$TMP/lv.config" -- "CONFIG CHECK FAILED: LOCALVERSION"
 check config-missing 1 kali -- build-kernel --check-config "$TMP/none.config" -- "no kernel config"
+# An empty string setting may be absent (its dependency is off), but must not name a file.
+grep -v SYSTEM_REVOCATION_KEYS "$good" > "$TMP/norev.config"
+check config-absent-empty 0 kali -- build-kernel --check-config "$TMP/norev.config" -- "config check: 18 required settings"
+sed 's/^CONFIG_SYSTEM_REVOCATION_KEYS=.*/CONFIG_SYSTEM_REVOCATION_KEYS="certs\/revoked.pem"/' "$good" > "$TMP/rev.config"
+check config-key-file 1 kali -- build-kernel --check-config "$TMP/rev.config" -- 'CONFIG CHECK FAILED: wanted CONFIG_SYSTEM_REVOCATION_KEYS=""'
 
 # kernel/ must match the patches and config in agx-linux-kit, when the kit is next to this repo.
 if [ -d "$HERE/../../agx-linux-kit/patches" ]; then
