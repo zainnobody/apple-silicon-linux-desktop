@@ -100,12 +100,12 @@ One backend file per distro family maps four jobs:
 | Family | Package | Install | Initramfs and boot entry | Device trees |
 |---|---|---|---|---|
 | Debian | `linux-image-7.2.11-agx_7.2.11-agx-<rev>_arm64.deb` (`KDEB_PKGVERSION`) | `apt-get install` | The package's scripts: initramfs-tools (with the firmware hook), `update-grub`. The running kernel is pinned as the saved default first. | `/usr/lib/linux-image-<release>/` |
-| Fedora | `kernel-7.2.11_agx-<n>.aarch64.rpm` | `dnf install`; a replace removes the old build first (same files) | `kernel-install`: dracut (with dracut-asahi), Boot Loader Spec entry. `UPDATEDEFAULT=no` first. | `/usr/lib/modules/<release>/dtb/` |
+| Fedora | `kernel-7.2.11_agx-<n>.fc44.aarch64.rpm` | `dnf install`; a replace removes the old build first (same files) | `kernel-install`: dracut (with dracut-asahi), Boot Loader Spec entry. `UPDATEDEFAULT=no` first. | `/usr/lib/modules/<release>/dtb/` |
 | Arch | `linux-agx-7.2.11_agx-<n>-aarch64.pkg.tar.zst` (`PACMAN_PKGBASE=linux-agx`) | `pacman -U` | mkinitcpio's pacman hook: `/boot/vmlinuz-linux-agx`; then `grub-mkconfig`. The distro kernel is pinned first. | `/usr/lib/modules/<release>/dtb/` |
 
 binrpm-pkg names the package `kernel`. The Fedora repositories have an unrelated `kernel` package (4K pages, no Apple support; Fedora Asahi Remix uses `kernel-16k`), so the Fedora step excludes `kernel` from the fedora, updates and updates-testing repositories. Only the kernel package is installed: `linux-libc-dev` and Fedora's `kernel-headers` belong to the C library.
 
-Not verified yet (needs the first real build): the Debian and Arch build tool names, module stripping in binrpm-pkg, and the package release numbers of binrpm-pkg and pacman-pkg (they come from the kernel build counter).
+First real build (2026-10-28, Fedora, STATUS.md section 6): the .rpm builds in 41 minutes on the M3, and its config equals the installed one except the release name. It found three faults, all fixed: the config check and an absent empty setting, rpm's elfutils-devel dependency, and unstripped modules (binrpm-pkg strips only with a debuginfo package, which compressed modules turn off). Not verified yet: the Debian and Arch builds and their tool names.
 
 Driver packages: every M3 driver is in the kernel package (GPU driver built in, USB4, Bluetooth, fan, memory floor). The user-space files (firmware hook, Mesa selector) are written by the install steps. Mesa is built on each Mac and never shipped. A support package for those files is the next step; it needs dpkg-deb, rpmbuild and makepkg to test, and this Mac has none.
 

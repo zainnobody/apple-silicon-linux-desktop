@@ -4,7 +4,7 @@ Reference Mac: MacBook Pro 16-inch M3 Pro (Mac15,7, J516S, SoC T6030, chip revis
 
 Stack: kernel `7.2.11-m3gpu+` (SiliconForest `0e1f466` plus our patches), m1n1 `aca1258`, Mesa 26.3.0-devel (SiliconForest `7515336`) in `/opt/mesa-m3`.
 
-Last update: 2026-10-27 13:20 (M3 time, PDT). Times below are PDT on 2026-10-26, unless a row says 2026-10-27.
+Last update: 2026-10-28 02:45 (M3 time, PDT). Times below are PDT on 2026-10-26, unless a row says 2026-10-27.
 
 ## 1. Full check on the default boot (22:49 to 22:52)
 
@@ -108,7 +108,28 @@ Details and limits of this pair: `COMPARE.md`, section 3.
 | All 12 | 90,284 | 51,495 | 70,889 |
 | 1 | 9,321 | 6,463 | 7,892 |
 
-## 6. Open items that can change these numbers
+## 6. Kernel package build (2026-10-28, first real build)
+
+`agx build-kernel --build --family fedora` on the M3 (distro-pack `ec37120`), as a normal user, `nice -n 19`, idle IO, in `/data/work/agx-build`, charger in. Nothing was installed. Log: `/data/work/agx-build/build.log` on the M3.
+
+| Item | Result |
+|---|---|
+| Patch check on the real kernel clone | All 4 patches apply on `0e1f46661376` |
+| Build time | 01:49:42 to 02:30:43, 2,461 s (41 min), exit 0 |
+| `kernel-7.2.11_agx-1.fc44.aarch64.rpm` | 1,318,309,522 bytes, SHA-256 `37d2d3abfa2cabb91055397972b61a6a9ac0eb85eb209c3711d0196d66090d18` |
+| `kernel-devel-7.2.11_agx-1.fc44.aarch64.rpm` | 10,506,762 bytes, SHA-256 `0dbc067a5c7e520b8f5c862c6fa24dcecf523a08dc097f1c34b623ac8e855f77` (not used) |
+| `kernel-headers-7.2.11_agx-1.fc44.aarch64.rpm` | 1,641,227 bytes, SHA-256 `85fa7325209b532b76b703ff2a7022f58c2ecb8a748a2687703980be0aa625ff` (never install: it belongs to the C library) |
+| Contents | 10,175 files, 5,645 modules. `vmlinuz`, `dtb/apple/t6030-j516s.dtb`, `thunderbolt_apple.ko`, `hci_bcm4377.ko`, `macsmc-hwmon.ko` |
+| Kernel image | `vmlinuz` is an EFI zboot PE file (`CONFIG_EFI_ZBOOT=y`), the same format as the stock Fedora Asahi kernels. The raw `Image` of the build has the recovery fix (4 "recovery step" strings) and the `g15_perf_tgt_util` parameter. The running M3 kernel boots from a raw `Image` that the kit copied by hand. |
+| Config | Equal to the installed `7.2.11-m3gpu+` config except `CONFIG_LOCALVERSION` |
+| Package scripts | `%post` runs `kernel-install add`, copies `vmlinuz`, `System.map`, `config` and the DTBs to `/boot`, and runs `depmod` |
+| **Fault: module size** | The modules are not stripped and not compressed: 7.4 GB unpacked. `hci_bcm4377.ko` is 1,064,584 bytes, against 83,624 bytes in the running kernel. |
+
+Cause of the module size: the config has `CONFIG_MODULE_COMPRESS=y` (xz) without `MODULE_COMPRESS_ALL`. The kernel's spec generator then turns off both debuginfo modes (the debuginfo tool needs uncompressed modules), and the spec defines `install_mod_strip` only in its manual debuginfo block. So nothing stripped the modules. bindeb-pkg and pacman-pkg always strip. Fix (distro-pack `1311abb`): the Fedora backend passes `RPMOPTS=--define='install_mod_strip 1'`. Not rebuilt yet.
+
+Two early stops before this build, both fixed: the config check rejected the absent `SYSTEM_REVOCATION_KEYS` (its dependency is off; `57a3710`), and rpmbuild wanted `elfutils-devel`, which this config does not use (`ec37120`, build run with `AGX_RPM_NODEPS=1`).
+
+## 7. Open items that can change these numbers
 
 - Run `metal-stress` with no checks in macOS, for a fair peak GPU compute pair (needs a macOS boot).
 - Test boot with `asahi.g15_idle_standby_us=100000` (GPU session, stage M): it can change the GPU clock under stop-and-go loads.
