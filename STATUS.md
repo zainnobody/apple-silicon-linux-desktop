@@ -108,7 +108,7 @@ Details and limits of this pair: `COMPARE.md`, section 3.
 | All 12 | 90,284 | 51,495 | 70,889 |
 | 1 | 9,321 | 6,463 | 7,892 |
 
-## 6. Kernel package build (2026-10-28, first real build)
+## 6. Kernel package build (2026-10-28, first real build and stripped rebuild)
 
 `agx build-kernel --build --family fedora` on the M3 (distro-pack `ec37120`), as a normal user, `nice -n 19`, idle IO, in `/data/work/agx-build`, charger in. Nothing was installed. Log: `/data/work/agx-build/build.log` on the M3.
 
@@ -125,7 +125,26 @@ Details and limits of this pair: `COMPARE.md`, section 3.
 | Package scripts | `%post` runs `kernel-install add`, copies `vmlinuz`, `System.map`, `config` and the DTBs to `/boot`, and runs `depmod` |
 | **Fault: module size** | The modules are not stripped and not compressed: 7.4 GB unpacked. `hci_bcm4377.ko` is 1,064,584 bytes, against 83,624 bytes in the running kernel. |
 
-Cause of the module size: the config has `CONFIG_MODULE_COMPRESS=y` (xz) without `MODULE_COMPRESS_ALL`. The kernel's spec generator then turns off both debuginfo modes (the debuginfo tool needs uncompressed modules), and the spec defines `install_mod_strip` only in its manual debuginfo block. So nothing stripped the modules. bindeb-pkg and pacman-pkg always strip. Fix (distro-pack `1311abb`): the Fedora backend passes `RPMOPTS=--define='install_mod_strip 1'`. Not rebuilt yet.
+Cause of the module size: the config has `CONFIG_MODULE_COMPRESS=y` (xz) without `MODULE_COMPRESS_ALL`. The kernel's spec generator then turns off both debuginfo modes (the debuginfo tool needs uncompressed modules), and the spec defines `install_mod_strip` only in its manual debuginfo block. So nothing stripped the modules. bindeb-pkg and pacman-pkg always strip. Fix (distro-pack `1311abb`): the Fedora backend passes `RPMOPTS=--define='install_mod_strip 1'`.
+
+### Stripped rebuild (02:37 to 02:55)
+
+The same command and rules, with distro-pack `e443ed3` (it has `1311abb`). Log: `/data/work/agx-build/build.log` on the M3; the first build's log is now `build-try3.log`. Nothing was installed.
+
+| Item | Result |
+|---|---|
+| Build time | 02:37:05 to 02:54:45, 1,060 s (18 min), exit 0. The first build also packed 7.4 GB of modules; the cause of the shorter time is not measured. |
+| `kernel-7.2.11_agx-1.fc44.aarch64.rpm` | 95,451,458 bytes, SHA-256 `e82119093c0892bfbb44c5927c68e65b105094479818c512fd11f609fef31a4e`. Installed size 537,075,840 bytes. |
+| `kernel-devel-7.2.11_agx-1.fc44.aarch64.rpm` | 10,505,401 bytes, SHA-256 `7acc79ae8fe8a48130863dba0c2d3ed6f5a3cdf7662f9bb8053b3880a387dfa8` (not used) |
+| `kernel-headers-7.2.11_agx-1.fc44.aarch64.rpm` | 1,641,227 bytes, SHA-256 `042188f988620b1e1f528c8e2148dd09da211648c57a310904db0647f6a5e395` (never install) |
+| Contents | 10,175 files, 5,645 modules, with the same files as the first build checks above |
+| Kernel image | `vmlinuz` (SHA-256 `4fa6b4ee3f52d7287cce19d6e138ab2e20b55549bf06904851a7cf36434f106e`) is the build tree's `vmlinuz.efi`. The tree's raw `Image` has 4 "recovery step" strings and 1 `tgt_util` string. |
+| Module stripping | 0 of 5,645 `.ko` files have a `debug_info` section. All 5,645 are also in the running `7.2.11-m3gpu+` `kernel/` tree: 402,936,528 bytes in the package, 403,515,488 bytes running. 5,644 are within 1 % in size; `cypress_firmware.ko` differs by 96 bytes. `hci_bcm4377.ko`: 83,528 bytes, against 83,624 bytes running. |
+| Config | Equal to the installed config except `CONFIG_LOCALVERSION` |
+
+The running kernel also has test modules outside `kernel/` (`touchid-test/apple-sep*.ko`, `ftst-test/` and `updates/macsmc-hwmon.ko`, `ane-test/ane_t6030_probe.ko`). They are not part of the package.
+
+After these checks, the first build's three unstripped RPMs (the hashes in the first table) and their `kernel-release` file were removed from the M3. The stripped packages are in `/data/work/agx-build/out/packages` and `kbuild/linux/rpmbuild/RPMS/aarch64`.
 
 Two early stops before this build, both fixed: the config check rejected the absent `SYSTEM_REVOCATION_KEYS` (its dependency is off; `57a3710`), and rpmbuild wanted `elfutils-devel`, which this config does not use (`ec37120`, build run with `AGX_RPM_NODEPS=1`).
 
