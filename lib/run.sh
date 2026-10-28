@@ -15,6 +15,7 @@ need_root() { [ "$AGX_APPLY" != 1 ] || [ "$(id -u)" = 0 ] || die "run with sudo"
 
 run() {
 	if [ "$AGX_APPLY" = 1 ]; then
+		printf '+ %s\n' "$*" >&2
 		"$@"
 	else
 		printf '+ %s\n' "$*"

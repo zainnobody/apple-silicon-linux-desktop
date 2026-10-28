@@ -25,13 +25,13 @@ Usage: agx <command>
   step <name> [arg]      Print one install step as a dry run. Steps: backup platform mesa
                          kernel kernel-replace bootbin-build <dtb|gpu> bootbin-use <stage>
                          boot-once mesa-select default macos-switch
-  build-kernel [--src DIR] [--family debian|fedora|arch]
+  build-kernel [--src DIR] [--family debian|fedora|arch] [--build]
                          Print the build of the agx kernel package for this distro family
                          (.deb, .rpm or Arch package). Checks the patches, and with --src
-                         that they apply on the pinned kernel commit.
+                         that they apply on the pinned kernel commit. --build builds the
+                         packages for real as a normal user; it installs nothing.
 
-The steps and the build only print their commands. Running them for real (--apply) is not
-enabled yet.
+The steps only print their commands. Running them for real (--apply) is not enabled yet.
 
 Exit codes: 0 ready, 2 unsupported Mac, 3 not Linux on Apple silicon, 4 unknown distro
 family, 5 no machine profile for this board.

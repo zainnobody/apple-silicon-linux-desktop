@@ -30,8 +30,8 @@ check() {
 	shift
 	while [ $# -gt 0 ] && [ "$1" != -- ]; do args+=("$1"); shift; done
 	[ $# -eq 0 ] || shift
-	out="$(env ${envs[@]+"${envs[@]}"} AGX_ROOT="$TMP/$root" AGX_WORK="$TMP/work" AGX_STAGE_DIR="$TMP/out" \
-		JOBS=8 "$AGX" "${args[@]}" 2>&1)"
+	out="$(env AGX_ROOT="$TMP/$root" AGX_WORK="$TMP/work" AGX_STAGE_DIR="$TMP/out" JOBS=8 \
+		${envs[@]+"${envs[@]}"} "$AGX" "${args[@]}" 2>&1)"
 	got=$?
 	[ "$got" = "$want" ] || { echo "FAIL $name: exit $got, want $want"; ok=0; }
 	for s in "$@"; do
@@ -151,6 +151,16 @@ printf '%s\n' "$plan" | grep -E '^\+ sh -c (git -C|cd )' | sed 's/^+ sh -c //' >
 expect "printed source steps run: 2 steps" [ "$(wc -l < "$TMP/steps" | tr -d ' ')" = 2 ]
 expect "patches applied in order inside another git repo" \
 	[ "$(cat "$OUTER/work/kbuild/linux/drivers/x.c" 2> /dev/null)" = "$(printf 'int a;\nint b;\nint c2;')" ]
+
+# --build runs for real: never without a source clone where the patches apply.
+check build-nosrc 1 kali -- build-kernel --build -- "is not a git clone of the kernel" ! "real build"
+# With the fake clone: the export and the patches run for real, then the build stops, because the
+# fake tree has no kernel scripts/config.
+check build-fake 1 kali AGX_KERNEL_DIR="$K" AGX_WORK="$TMP/realwork" -- build-kernel --build --src "$G" -- \
+	"source: all 2 patches apply" "real build (no install), started" "+ sh -c cd '$TMP/realwork/kbuild/linux'" \
+	"no scripts/config in the exported tree: is $G a kernel clone?" ! "make -C"
+expect "build-fake: the patches are in the real tree" \
+	[ "$(cat "$TMP/realwork/kbuild/linux/drivers/x.c" 2> /dev/null)" = "$(printf 'int a;\nint b;\nint c2;')" ]
 
 # The config check after olddefconfig.
 good="$TMP/good.config"

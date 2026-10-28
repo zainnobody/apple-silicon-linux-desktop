@@ -53,7 +53,7 @@ bk_kernel_make_vars() { :; }
 bk_kernel_pkg_out() { printf "'%s'/rpmbuild/RPMS/aarch64/kernel-[0-9]*.rpm" "$1"; }
 bk_kernel_pkg_file() { newest_file "$AGX_PKG_DIR" "kernel-$(printf '%s' "$1" | tr - _)-*.aarch64.rpm"; }
 bk_dtb_dir() { printf '/usr/lib/modules/%s/dtb' "$1"; }
-BACKEND_KERNEL_NOTE="binrpm-pkg takes the package release from the kernel build counter, and its module stripping is not set yet: check both at the first real build"
+BACKEND_KERNEL_NOTE="binrpm-pkg takes the package release from the kernel build counter; its spec strips the modules itself (debuginfo package or install_mod_strip)"
 
 # The package's %post runs kernel-install: dracut builds the initramfs (with dracut-asahi) and the
 # Boot Loader Spec entry is written. With UPDATEDEFAULT=no the default entry stays.
