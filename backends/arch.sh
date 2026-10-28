@@ -33,7 +33,8 @@ bk_boot_entry_id() {
 
 # Kernel package (make pacman-pkg), with the headers package for out-of-tree modules.
 BACKEND_BUILD_DEPS="base-devel bc cpio kmod libelf pahole perl python rust rust-src rust-bindgen clang lld (names not verified)"
-bk_kernel_make_vars() { printf 'PACMAN_PKGBASE=%s PACMAN_EXTRAPACKAGES=headers INSTALL_MOD_STRIP=1' "$AGX_PKGBASE"; }
+# Make variables, one per line. The kernel's PKGBUILD strips the modules itself (INSTALL_MOD_STRIP=1).
+bk_kernel_make_vars() { printf 'PACMAN_PKGBASE=%s\nPACMAN_EXTRAPACKAGES=headers\n' "$AGX_PKGBASE"; }
 bk_kernel_pkg_out() { printf "'%s'/%s-[0-9]*.pkg.tar.zst '%s'/%s-headers-*.pkg.tar.zst" "$1" "$AGX_PKGBASE" "$1" "$AGX_PKGBASE"; }
 bk_kernel_pkg_file() { newest_file "$AGX_PKG_DIR" "$AGX_PKGBASE-$(printf '%s' "$1" | tr - _)-*-aarch64.pkg.tar.zst"; }
 bk_dtb_dir() { printf '/usr/lib/modules/%s/dtb' "$1"; }

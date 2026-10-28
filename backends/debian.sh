@@ -28,7 +28,8 @@ bk_boot_entry_id() { grub_entry_id "$1"; }
 # Kernel package (make bindeb-pkg). linux-libc-dev and the debug package are not installed:
 # linux-libc-dev would replace the distro's C library headers.
 BACKEND_BUILD_DEPS="build-essential bc bison flex libssl-dev libelf-dev dwarves rsync cpio kmod dpkg-dev rustc rust-src bindgen clang lld (names not verified)"
-bk_kernel_make_vars() { printf 'KDEB_PKGVERSION=%s-%s INSTALL_MOD_STRIP=1' "$1" "$AGX_PKG_REV"; }
+# Make variables, one per line. builddeb strips the modules itself (INSTALL_MOD_STRIP=1).
+bk_kernel_make_vars() { printf 'KDEB_PKGVERSION=%s-%s\n' "$1" "$AGX_PKG_REV"; }
 bk_kernel_pkg_out() { printf "'%s'/../linux-image-[0-9]*.deb '%s'/../linux-headers-*.deb" "$1" "$1"; }
 bk_kernel_pkg_file() { newest_file "$AGX_PKG_DIR" "linux-image-$1_*_arm64.deb"; }
 bk_dtb_dir() { printf '/usr/lib/linux-image-%s' "$1"; }

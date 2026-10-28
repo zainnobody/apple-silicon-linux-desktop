@@ -49,14 +49,23 @@ bk_boot_entry_id() {
 # Kernel package (make binrpm-pkg). Only the kernel package is installed, not kernel-headers or
 # kernel-devel: the distro's kernel-headers package belongs to the C library.
 BACKEND_BUILD_DEPS="gcc make flex bison bc perl rsync kmod cpio dwarves elfutils-libelf-devel elfutils-devel openssl-devel rpm-build rust rust-src bindgen-cli clang lld"
-# AGX_RPM_NODEPS=1: skip rpmbuild's BuildRequires check, on a host where the build user cannot
-# install packages. The spec asks for elfutils-devel, which only BTF and gendwarfksyms use (both off
-# in the M3 config). A tool that is really missing still stops the compile.
-bk_kernel_make_vars() { [ "${AGX_RPM_NODEPS:-0}" != 1 ] || printf 'RPMOPTS=--nodeps'; }
+# Make variables, one per line. The spec strips the modules only when it makes a debuginfo
+# package, and compressed modules (CONFIG_MODULE_COMPRESS) turn that off: the first M3 build gave a
+# 1.3 GB package with 7.4 GB of modules. install_mod_strip strips them, as bindeb-pkg and
+# pacman-pkg always do. AGX_RPM_NODEPS=1 also skips rpmbuild's BuildRequires check, on a host where
+# the build user cannot install packages: the spec asks for elfutils-devel, which only BTF and
+# gendwarfksyms use (both off in the M3 config). A tool that is really missing still stops the compile.
+bk_kernel_make_vars() {
+	if [ "${AGX_RPM_NODEPS:-0}" = 1 ]; then
+		printf '%s\n' "RPMOPTS=--nodeps --define='install_mod_strip 1'"
+	else
+		printf '%s\n' "RPMOPTS=--define='install_mod_strip 1'"
+	fi
+}
 bk_kernel_pkg_out() { printf "'%s'/rpmbuild/RPMS/aarch64/kernel-[0-9]*.rpm" "$1"; }
 bk_kernel_pkg_file() { newest_file "$AGX_PKG_DIR" "kernel-$(printf '%s' "$1" | tr - _)-*.aarch64.rpm"; }
 bk_dtb_dir() { printf '/usr/lib/modules/%s/dtb' "$1"; }
-BACKEND_KERNEL_NOTE="binrpm-pkg takes the package release from the kernel build counter; its spec strips the modules itself (debuginfo package or install_mod_strip)"
+BACKEND_KERNEL_NOTE="binrpm-pkg takes the package release from the kernel build counter, and agx sets install_mod_strip (the spec does not strip compressed-module builds)"
 
 # The package's %post runs kernel-install: dracut builds the initramfs (with dracut-asahi) and the
 # Boot Loader Spec entry is written. With UPDATEDEFAULT=no the default entry stays.

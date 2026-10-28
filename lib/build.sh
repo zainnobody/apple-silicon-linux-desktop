@@ -95,7 +95,7 @@ check_config() {
 
 # `agx build-kernel [--src DIR] [--family debian|fedora|arch] [--check-config FILE] [--build]`
 agx_build_kernel() {
-	local src="" family="" check_only="" build=0 tree krel cfg got t0
+	local src="" family="" check_only="" build=0 tree krel cfg got t0 v vars=()
 	while [ $# -gt 0 ]; do
 		case "$1" in
 		--src) src="${2:-}"; shift 2 ;;
@@ -166,8 +166,9 @@ agx_build_kernel() {
 		echo "+ check $tree/.config: $(required_settings | wc -l | tr -d ' ') required settings and CONFIG_LOCALVERSION=\"$AGX_LOCALVERSION\""
 		echo "+ check: make -C $tree -s kernelrelease prints $krel"
 	fi
-	# shellcheck disable=SC2046  # one word per make variable
-	run make -C "$tree" -j"$JOBS" $(bk_kernel_make_vars "$krel") "$BACKEND_KERNEL_TARGET"
+	# One argument per make variable: a value can hold spaces (RPMOPTS).
+	while IFS= read -r v; do [ -z "$v" ] || vars+=("$v"); done < <(bk_kernel_make_vars "$krel")
+	run make -C "$tree" -j"$JOBS" ${vars[@]+"${vars[@]}"} "$BACKEND_KERNEL_TARGET"
 	run mkdir -p "$AGX_PKG_DIR"
 	run sh -c "cp $(bk_kernel_pkg_out "$tree") '$AGX_PKG_DIR/'"
 	run sh -c "echo $krel > '$AGX_PKG_DIR/kernel-release'"

@@ -70,17 +70,16 @@ check debian 0 kali -- build-kernel -- \
 	"archive --format=tar $COMMIT" "GIT_CEILING_DIRECTORIES=" "m3-kernel-tree-2026-10-26.patch" "macsmc-hwmon-ftst-unlock.patch" \
 	"kernel/config/t6030.config" "--set-str LOCALVERSION -agx" "--disable APPLE_SEP" "--module USB4_APPLE_SOC" \
 	"--disable LOCALVERSION_AUTO" "olddefconfig" "kernelrelease prints 7.2.11-agx" \
-	"-j8 KDEB_PKGVERSION=7.2.11-agx-1 INSTALL_MOD_STRIP=1 bindeb-pkg" "linux-image-[0-9]*.deb" \
+	"-j8 KDEB_PKGVERSION=7.2.11-agx-1 bindeb-pkg" "linux-image-[0-9]*.deb" \
 	"echo 7.2.11-agx > '$TMP/out/packages/kernel-release'" \
 	! "linux-libc-dev" "binrpm-pkg" "pacman-pkg"
 check fedora 0 fedora -- build-kernel -- \
 	"as .rpm (binrpm-pkg)" "rpmbuild/RPMS/aarch64/kernel-[0-9]*.rpm" "note: binrpm-pkg takes the package release" \
-	"rpm-build" ! "KDEB_PKGVERSION" "pacman-pkg"
+	"rpm-build" "-j8 RPMOPTS=--define='install_mod_strip 1' binrpm-pkg" ! "KDEB_PKGVERSION" "pacman-pkg" "--nodeps"
 check arch 0 arch -- build-kernel -- \
-	"as .pkg.tar.zst (pacman-pkg)" "PACMAN_PKGBASE=linux-agx PACMAN_EXTRAPACKAGES=headers INSTALL_MOD_STRIP=1 pacman-pkg" \
+	"as .pkg.tar.zst (pacman-pkg)" "-j8 PACMAN_PKGBASE=linux-agx PACMAN_EXTRAPACKAGES=headers pacman-pkg" \
 	"linux-agx-[0-9]*.pkg.tar.zst" "linux-agx-headers-*.pkg.tar.zst" ! "bindeb-pkg"
-check fedora-nodeps 0 fedora AGX_RPM_NODEPS=1 -- build-kernel -- "-j8 RPMOPTS=--nodeps binrpm-pkg" "elfutils-devel"
-check fedora-deps 0 fedora -- build-kernel -- "-j8 binrpm-pkg" ! "--nodeps"
+check fedora-nodeps 0 fedora AGX_RPM_NODEPS=1 -- build-kernel -- "-j8 RPMOPTS=--nodeps --define='install_mod_strip 1' binrpm-pkg" "elfutils-devel"
 check family-flag 0 macos -- build-kernel --family arch -- "pacman-pkg"
 check no-family 1 macos -- build-kernel -- "unknown package family"
 check bad-arg 1 kali -- build-kernel --fast -- "build-kernel takes --src DIR"
