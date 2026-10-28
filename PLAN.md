@@ -77,6 +77,7 @@ The stage G selector already works with any desktop. It uses a systemd user envi
 |---|---|
 | `agx detect` | Reads the board, chip, firmware, distro family and initramfs system. Prints the plan. Refuses unsupported Macs. |
 | `agx install` | Installs layers 1 to 6 with the distro's package manager. The stock kernel stays as the fallback boot. |
+| `agx build-kernel` | Builds the agx kernel as a .deb, .rpm or Arch package (dry run in phase 1). |
 | `agx build-mesa` | M3 only. Builds Mesa on the Mac. |
 | `agx desktop mac` | Applies the Mac-like desktop profile. |
 | `agx status` / `agx undo` | Shows what is installed. Removes it. |
@@ -91,6 +92,22 @@ One backend file per distro family maps four jobs:
 | Load the Apple firmware at boot | distro-pack hook (`system/initramfs-tools`) | `dracut-asahi` | `asahi` mkinitcpio hook |
 
 **Firmware hook for the Debian family (2026-10-27).** asahi-scripts has hooks for dracut and mkinitcpio only. `system/initramfs-tools/` ports them. `scripts/init-top/agx-asahi-firmware` runs before udev. It finds the EFI partition by the PARTUUID from m1n1 and unpacks `vendorfw/firmware.cpio` to `/vendorfw`. `scripts/init-bottom/agx-asahi-firmware` copies the files to a tmpfs at `/lib/firmware/vendor` on the root file system. The Asahi kernel looks there first. The hook adds `nvme-apple`, `apple-mailbox`, `vfat` and the tools `blkid`, `cpio`, `tr` and `cp`. The firmware never goes into the initramfs file. `agx step firmware` installs the three files and runs `update-initramfs -u -k all`. It does nothing when a distro package already has a firmware hook. Tests: 51 cases in `tests/initramfs.sh` with fake root file systems, under dash, bash and busybox ash. A real boot is not tested yet. Phase 2 does that.
+
+**Kernel packages (phase 1, 2026-10-27).** `kernel/` holds the source pin (`source.conf`: SiliconForest `0e1f46661376`, release 7.2.11), the patch series with SHA-256 values (`series`, `patches/`), the chip config (`config/t6030.config`, the installed M3 config with the USB4 module) and the settings that every build sets and checks (`config/required.conf`, from agx-linux-kit `build/build-kernel.sh`). The series is the tested default boot: the stage A to L tree patch, GPU `tgt_util` (stage N), GPU fault recovery (stage O) and the fan unlock. Touch ID stays out: it is in test boots only, and the safe config turns SEP off. `tools/sync-kit-patches.sh` copies these files from agx-linux-kit and `--check` compares them.
+
+`agx build-kernel` exports the pinned commit with `git archive`, not as a checkout: a git tree with changes adds "+" to the release name, which is how the M3 got `7.2.11-m3gpu+`. It applies the patches one at a time (git apply with several files does not chain changes to one file), with `GIT_CEILING_DIRECTORIES` (inside another git repository, git apply skips patches without an error). Then it sets and checks the required settings and runs the family's package target. With `--src`, it first checks that every patch applies on the pinned commit, in a temporary index.
+
+| Family | Package | Install | Initramfs and boot entry | Device trees |
+|---|---|---|---|---|
+| Debian | `linux-image-7.2.11-agx_7.2.11-agx-<rev>_arm64.deb` (`KDEB_PKGVERSION`) | `apt-get install` | The package's scripts: initramfs-tools (with the firmware hook), `update-grub`. The running kernel is pinned as the saved default first. | `/usr/lib/linux-image-<release>/` |
+| Fedora | `kernel-7.2.11_agx-<n>.aarch64.rpm` | `dnf install`; a replace removes the old build first (same files) | `kernel-install`: dracut (with dracut-asahi), Boot Loader Spec entry. `UPDATEDEFAULT=no` first. | `/usr/lib/modules/<release>/dtb/` |
+| Arch | `linux-agx-7.2.11_agx-<n>-aarch64.pkg.tar.zst` (`PACMAN_PKGBASE=linux-agx`) | `pacman -U` | mkinitcpio's pacman hook: `/boot/vmlinuz-linux-agx`; then `grub-mkconfig`. The distro kernel is pinned first. | `/usr/lib/modules/<release>/dtb/` |
+
+binrpm-pkg names the package `kernel`. The Fedora repositories have an unrelated `kernel` package (4K pages, no Apple support; Fedora Asahi Remix uses `kernel-16k`), so the Fedora step excludes `kernel` from the fedora, updates and updates-testing repositories. Only the kernel package is installed: `linux-libc-dev` and Fedora's `kernel-headers` belong to the C library.
+
+Not verified yet (needs the first real build): the Debian and Arch build tool names, module stripping in binrpm-pkg, and the package release numbers of binrpm-pkg and pacman-pkg (they come from the kernel build counter).
+
+Driver packages: every M3 driver is in the kernel package (GPU driver built in, USB4, Bluetooth, fan, memory floor). The user-space files (firmware hook, Mesa selector) are written by the install steps. Mesa is built on each Mac and never shipped. A support package for those files is the next step; it needs dpkg-deb, rpmbuild and makepkg to test, and this Mac has none.
 
 Stages A to K become steps inside `agx install`. Five scripts call Fedora tools today: `stage-a.sh`, `stage-b.sh`, `stage-f.sh`, `stage-k-default.sh` and `setup-macos-switch.sh`.
 
@@ -167,7 +184,7 @@ The newest numbers, with their dates and sources, are in `STATUS.md`.
 | Phase | Work | Done when | Needs the user |
 |---|---|---|---|
 | 0 | Backend files and `agx detect`. Stages A to K stop calling Fedora tools directly. | `agx detect` is correct on the M3 in Fedora. Scripts pass shellcheck. | No. Done 2026-10-26: detect, backends and the stage port. All steps run as dry runs; `--apply` stays off until phase 2. Tests: 12 detect and 17 install cases pass on macOS and on the M3. Blocker found: the Debian family has no initramfs-tools hook for the Apple firmware. Hook written 2026-10-27 (section 5). |
-| 1 | Kernel packages: .deb, .rpm and Arch from one tree | All three build. The .rpm installs on Fedora and boots. | One reboot |
+| 1 | Kernel packages: .deb, .rpm and Arch from one tree | All three build. The .rpm installs on Fedora and boots. | One reboot. Offline part done 2026-10-27 (section 5, "Kernel packages"): `agx build-kernel`, the patch series, the package install steps; 24 build and 23 install cases pass. Not built yet: a real build needs a Linux arm64 host (the M3), after the GPU fault fix. |
 | 2 | Ubuntu 26.04 on the M3 by Path B. initramfs-tools hook. Mesa build on Ubuntu. | Ubuntu boots on our kernel. GPU tests, Wi-Fi, Bluetooth, audio and keyboard pass. | Go for the subvolume, reboots |
 | 3 | Kali by Path B | The same tests pass on Kali | Reboots |
 | 4 | Mac-like desktop profile | One script gives the same desktop on Fedora, Ubuntu and Kali | Review the look |
@@ -182,7 +199,8 @@ Other sessions also use the M3. The coordinator session approves reboots. Path B
 | Work | Waits for |
 |---|---|
 | Debian-family firmware hook | Done 2026-10-27. Tested with fake root file systems only. The first real boot is in phase 2. |
-| Kernel package scripts, desktop profile script | Nothing. Write and test with fake root file systems, no M3 needed. |
+| Kernel package scripts | Done 2026-10-27, as dry runs and fake-root tests. |
+| Desktop profile script, support-files package | Nothing. Write and test with fake root file systems, no M3 needed. |
 | Phase 1 kernel packages built on the M3 | 1. The maintenance window: USB4 module permanent, one reboot, health check (coordinator). 2. The fix for the GPU render fault and the Mesa crash (GPU session), because the fix can change the kernel or Mesa. Then one kernel and Mesa version is frozen for the packages. |
 | Phase 2 Ubuntu on the M3 | Phase 1 |
 | Sleep, Touch ID, AirDrop, camera quality, video decode in apps, Neural Engine | Not needed for the pack. A later pack release takes them when they work. |

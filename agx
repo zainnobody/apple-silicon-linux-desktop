@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # agx: Apple silicon drivers for any Linux distro.
-# Phase 0: `agx detect`, and dry runs of the install steps. Nothing installs yet (PLAN.md section 10).
+# Phases 0 and 1: `agx detect`, and dry runs of the install steps and the kernel package build.
+# Nothing installs yet (PLAN.md section 10).
 set -euo pipefail
 
 AGX_HOME="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -12,6 +13,8 @@ AGX_HOME="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$AGX_HOME/lib/detect.sh"
 # shellcheck source=lib/install.sh
 . "$AGX_HOME/lib/install.sh"
+# shellcheck source=lib/build.sh
+. "$AGX_HOME/lib/build.sh"
 
 usage() {
 	cat <<'EOF'
@@ -22,8 +25,13 @@ Usage: agx <command>
   step <name> [arg]      Print one install step as a dry run. Steps: backup platform mesa
                          kernel kernel-replace bootbin-build <dtb|gpu> bootbin-use <stage>
                          boot-once mesa-select default macos-switch
+  build-kernel [--src DIR] [--family debian|fedora|arch]
+                         Print the build of the agx kernel package for this distro family
+                         (.deb, .rpm or Arch package). Checks the patches, and with --src
+                         that they apply on the pinned kernel commit.
 
-The steps only print their commands. Running them for real (--apply) is not enabled yet.
+The steps and the build only print their commands. Running them for real (--apply) is not
+enabled yet.
 
 Exit codes: 0 ready, 2 unsupported Mac, 3 not Linux on Apple silicon, 4 unknown distro
 family, 5 no machine profile for this board.
@@ -40,6 +48,7 @@ case "$cmd" in
 detect) agx_detect "$@" ;;
 plan-install) agx_plan_install ;;
 step) agx_step "$@" ;;
+build-kernel) agx_build_kernel "$@" ;;
 install | build-mesa | desktop | status | undo)
 	echo "agx $cmd: not built yet. Run 'agx plan-install' to see the steps." >&2
 	exit 64

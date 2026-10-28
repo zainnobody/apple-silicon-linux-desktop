@@ -55,16 +55,21 @@ add_grub() {
 	} > "$r/boot/grub/grub.cfg"
 }
 
-# The build output that the install steps read.
+# The build output that the install steps read: the kernel packages of `agx build-kernel` (one per
+# family, named as the kernel's package targets name them), the Mesa build and the m1n1 build.
 STAGE="$TMP/stage"
-mkdir -p "$STAGE/kernel-$NEW/boot" "$STAGE/kernel-$NEW/lib/modules/$NEW" "$STAGE/kernel-$NEW/dtb/apple" \
-	"$STAGE/mesa-stage/opt/mesa-agx/lib64" "$STAGE/m1n1"
-for f in "boot/vmlinuz-$NEW" "boot/config-$NEW" "boot/System.map-$NEW" dtb/apple/t6030-j516s.dtb; do
-	: > "$STAGE/kernel-$NEW/$f"
+PKG="$STAGE/packages"
+mkdir -p "$PKG" "$STAGE/mesa-stage/opt/mesa-agx/lib64" "$STAGE/m1n1"
+DEB="linux-image-${NEW}_$NEW-1_arm64.deb"
+RPM="kernel-7.2.11_agx-1.aarch64.rpm"
+ARCHPKG="linux-agx-7.2.11_agx-1-aarch64.pkg.tar.zst"
+for f in "$DEB" "linux-headers-${NEW}_$NEW-1_arm64.deb" "$RPM" kernel-headers-7.2.11_agx-1.aarch64.rpm \
+	"$ARCHPKG" linux-agx-headers-7.2.11_agx-1-aarch64.pkg.tar.zst; do
+	: > "$PKG/$f"
 done
 : > "$STAGE/mesa-stage/opt/mesa-agx/lib64/libvulkan_asahi.so"
 : > "$STAGE/m1n1/m1n1.bin"
-echo "$NEW" > "$STAGE/kernel-release"
+echo "$NEW" > "$PKG/kernel-release"
 
 # check <name> <expected exit> <running kernel> <agx args> -- <must contain ...> [! <must not contain> ...]
 check() {
@@ -72,7 +77,8 @@ check() {
 	shift 3
 	while [ $# -gt 0 ] && [ "$1" != -- ]; do args+=("$1"); shift; done
 	[ $# -eq 0 ] || shift
-	out="$(AGX_ROOT="$TMP/$name" AGX_UNAME_R="$krel" AGX_PAGESIZE=16384 AGX_STAGE_DIR="$STAGE" "$AGX" "${args[@]}" 2>&1)"
+	# shellcheck disable=SC2086  # CHECK_ENV: extra VAR=value words for one case
+	out="$(env ${CHECK_ENV:-} AGX_ROOT="$TMP/$name" AGX_UNAME_R="$krel" AGX_PAGESIZE=16384 AGX_STAGE_DIR="$STAGE" "$AGX" "${args[@]}" 2>&1)"
 	got=$?
 	[ "$got" = "$want" ] || { echo "FAIL $name: exit $got, want $want"; ok=0; }
 	for s in "$@"; do
@@ -101,37 +107,43 @@ check fedora 0 "$STOCK_F" plan-install -- \
 	"append to /etc/sysconfig/update-m1n1" "M1N1_UPDATE_DISABLED=1" "dnf install -y dracut-asahi asahi-scripts" \
 	"dnf install -y asahi-audio alsa-ucm-asahi speakersafetyd asahi-bless" \
 	"cp -a $STAGE/mesa-stage/opt/mesa-agx /opt/mesa-agx" "restorecon -RF /opt/mesa-agx" \
-	"depmod -a $NEW" "dracut --force --kver $NEW /boot/initramfs-$NEW.img" \
-	"write /boot/loader/entries/abc-$NEW.conf" "title agx GPU kernel ($NEW)" "linux /vmlinuz-$NEW" \
+	"== kernel-new: kernel $NEW from $RPM" \
+	"dnf config-manager setopt fedora.excludepkgs=kernel updates.excludepkgs=kernel" "UPDATEDEFAULT=no" \
+	"dnf install -y $PKG/$RPM" "assumes an earlier step did this: no Boot Loader Spec entry for $NEW after the package install" \
+	"/usr/lib/modules/$NEW/dtb/apple/t6*.dtb" \
 	"/usr/share/uboot/apple_m1/u-boot-nodtb.bin" "chosen.asahi,t6030-gpu=1" \
 	"write /usr/local/sbin/agx-mesa-select" "grub2-reboot abc-$NEW" \
-	"UPDATEDEFAULT=no" "grub2-set-default abc-$NEW" "grub2-editenv - unset menu_auto_hide" \
-	! "update-grub" "grub-reboot " "apt-get" "@MESA_PREFIX@"
+	"grub2-set-default abc-$NEW" "grub2-editenv - unset menu_auto_hide" \
+	! "update-grub" "grub-reboot " "apt-get" "@MESA_PREFIX@" "depmod" "write /boot/loader/entries" "kernel-headers" \
+	"/boot/dtb-"
 
 make_root kali j516s t6030 "$KALI" apt-get update-initramfs update-grub
 add_grub kali "$NEW" "$STOCK_D"
 check kali 0 "$STOCK_D" plan-install -- \
 	"append to /etc/default/update-m1n1" "apt-get install -y asahi-audio" \
-	"update-initramfs -c -k $NEW" "sed -i s/^GRUB_DEFAULT=.*/GRUB_DEFAULT=saved/ /etc/default/grub" \
-	"grub-set-default gnulinux-advanced-$UUID>gnulinux-$STOCK_D-advanced-$UUID" "update-grub" \
+	"sed -i s/^GRUB_DEFAULT=.*/GRUB_DEFAULT=saved/ /etc/default/grub" \
+	"grub-set-default gnulinux-advanced-$UUID>gnulinux-$STOCK_D-advanced-$UUID" "apt-get install -y $PKG/$DEB" "update-grub" \
+	"/usr/lib/linux-image-$NEW/apple/t6*.dtb" \
 	"grub-reboot gnulinux-advanced-$UUID>gnulinux-$NEW-advanced-$UUID" \
 	"/usr/lib/asahi-boot/u-boot-nodtb.bin" "grub-set-default gnulinux-advanced-$UUID>gnulinux-$NEW-advanced-$UUID" \
 	"GRUB_TIMEOUT_STYLE=menu" "write /etc/initramfs-tools/hooks/agx-asahi-firmware (mode 0755)" \
 	"write /etc/initramfs-tools/scripts/init-top/agx-asahi-firmware" "cpio -i -d" \
 	"write /etc/initramfs-tools/scripts/init-bottom/agx-asahi-firmware" "mount -t tmpfs -o mode=0755 vendorfw" \
 	"mkdir -p /lib/firmware/vendor" "update-initramfs -u -k all" \
-	! "restorecon" "dracut --force" "grub2-" "dnf " "NOT BUILT"
+	! "restorecon" "dracut --force" "grub2-" "dnf " "NOT BUILT" "linux-headers" "update-initramfs -c"
 
 make_root ubuntu14 j514s t6030 "$UBUNTU" apt-get update-initramfs update-grub
 check ubuntu14 5 "$STOCK_D" plan-install -- "has no machine profile yet"
 
 make_root arch j516s t6030 "$ARCH" pacman mkinitcpio grub-mkconfig
-add_grub arch "$NEW" linux-asahi
+add_grub arch linux-agx linux-asahi
 check arch 0 "6.99.0-asahi-ARCH" plan-install -- \
-	"pacman -S --needed --noconfirm asahi-audio" "pacman -S --needed --noconfirm asahi-scripts" "mkinitcpio -k $NEW -g /boot/initramfs-$NEW.img" \
-	"grub-set-default gnulinux-advanced-$UUID>gnulinux-linux-asahi-advanced-$UUID" \
-	"grub-mkconfig -o /boot/grub/grub.cfg" "grub-reboot gnulinux-advanced-$UUID>gnulinux-$NEW-advanced-$UUID" \
-	! "restorecon" "dracut" "update-initramfs"
+	"pacman -S --needed --noconfirm asahi-audio" "pacman -S --needed --noconfirm asahi-scripts" \
+	"grub-set-default gnulinux-advanced-$UUID>gnulinux-linux-asahi-advanced-$UUID" "pacman -U --noconfirm $PKG/$ARCHPKG" \
+	"grub-mkconfig -o /boot/grub/grub.cfg" "/usr/lib/modules/$NEW/dtb/apple/t6*.dtb" \
+	"grub-reboot gnulinux-advanced-$UUID>gnulinux-linux-agx-advanced-$UUID" \
+	"grub-set-default gnulinux-advanced-$UUID>gnulinux-linux-agx-advanced-$UUID" \
+	! "restorecon" "dracut" "update-initramfs" "mkinitcpio -k" "linux-agx-headers"
 
 make_root m1arch j313 t8103 "$ARCH" pacman mkinitcpio grub-mkconfig
 check m1arch 0 "6.99.0-asahi-ARCH" plan-install -- \
@@ -163,8 +175,25 @@ make_root fedora-installed j516s t6030 "$FEDORA" dnf dracut grub2-mkconfig
 add_bls fedora-installed "$STOCK_F"
 mkdir -p "$TMP/fedora-installed/usr/lib/modules/$NEW"
 check fedora-installed 1 "$STOCK_F" step kernel -- "exists already (use the kernel-replace step)"
-check fedora-installed 0 "$STOCK_F" step kernel-replace -- "pre-replace" "dracut --force --kver $NEW" \
+check fedora-installed 0 "$STOCK_F" step kernel-replace -- "pre-replace" "cp -a /usr/lib/modules/$NEW" \
+	"undo: install the previous package file from $PKG again" "dnf remove -y kernel-7.2.11_agx" "dnf install -y $PKG/$RPM" \
 	! "write /boot/loader/entries"
+# On the Debian family a newer package version replaces the installed one; the saved default stays.
+make_root kali-installed j516s t6030 "$KALI" apt-get update-initramfs update-grub
+add_grub kali-installed "$NEW" "$STOCK_D"
+mkdir -p "$TMP/kali-installed/usr/lib/modules/$NEW"
+check kali-installed 0 "$STOCK_D" step kernel-replace -- "pre-replace" "apt-get install -y $PKG/$DEB" \
+	! "grub-set-default" "dnf "
+# No package of this release: the step stops before any change.
+CHECK_ENV="AGX_PKG_DIR=$TMP/nopkg" check fedora 1 "$STOCK_F" step kernel -- \
+	"no kernel release: set AGX_KREL or run agx build-kernel first" ! "dnf "
+CHECK_ENV="AGX_PKG_DIR=$TMP/nopkg AGX_KREL=$NEW" check fedora 1 "$STOCK_F" step kernel -- \
+	"no .rpm package of kernel $NEW in $TMP/nopkg (run agx build-kernel)" ! "dnf "
+# The newest build of the release wins (version order: 10 after 9).
+mkdir -p "$TMP/revs"
+for r in 1 9 10; do : > "$TMP/revs/kernel-7.2.11_agx-$r.aarch64.rpm"; done
+CHECK_ENV="AGX_PKG_DIR=$TMP/revs AGX_KREL=$NEW" check fedora 0 "$STOCK_F" step kernel -- \
+	"dnf install -y $TMP/revs/kernel-7.2.11_agx-10.aarch64.rpm"
 make_root kali-noentry j516s t6030 "$KALI" apt-get update-initramfs update-grub
 add_grub kali-noentry "$NEW"
 check kali-noentry 1 "$STOCK_D" step kernel -- "no GRUB entry for the running kernel $STOCK_D"

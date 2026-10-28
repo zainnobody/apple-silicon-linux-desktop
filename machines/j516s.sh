@@ -12,3 +12,5 @@ AGX_GPU_NODE="${AGX_GPU_NODE:-292400000.gpu}"
 AGX_M1N1_OPTIONS="${AGX_M1N1_OPTIONS:-chosen.asahi,t6030-gpu=1 chosen.asahi,t6030-dcp=1 chosen.asahi,t6030-dcpext=1}"
 # Kernel driver that binds the native GPU (asahi-g15 for the M3 generation, G15).
 AGX_GPU_DRIVER="${AGX_GPU_DRIVER:-asahi-g15}"
+# Kernel config for this chip, in kernel/config/ (agx build-kernel).
+AGX_KERNEL_CONFIG="${AGX_KERNEL_CONFIG:-t6030.config}"

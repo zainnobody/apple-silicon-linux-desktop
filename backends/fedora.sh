@@ -28,13 +28,13 @@ bls_entry_of() {
 
 bk_pkg_install() { run dnf install -y "$@"; }
 bk_relabel() { run restorecon -RF "$@"; }
-bk_initramfs() { run dracut --force --kver "$1" "/boot/initramfs-$1.img"; }
 bk_backup_boot_config() {
 	run cp -a "$BLS_DIR" "$1/loader-entries"
 	run cp -a /boot/grub2/grubenv "$1/grubenv"
 }
 
-# The id of the entry for $1. Before the entry exists, the id that bk_boot_entry_add makes.
+# The id of the entry for $1. Before the entry exists, the id that kernel-install gives it
+# (<machine id>-<release>, the running kernel's entry name with the new release).
 bk_boot_entry_id() {
 	local f
 	f="$(bls_entry_of "$1")"
@@ -46,17 +46,31 @@ bk_boot_entry_id() {
 	[ -z "$f" ] || basename "$f" .conf | sed "s/$(sed_left "$AGX_RUNNING_KREL")/$(sed_right "$1")/"
 }
 
-# Copy the running kernel's entry and change only the version. The default entry stays.
-bk_boot_entry_add() {
-	local src id
-	src="$(bls_entry_of "$AGX_RUNNING_KREL")"
-	[ -n "$src" ] || die "no Boot Loader Spec entry for the running kernel $AGX_RUNNING_KREL"
-	! grep -q '^devicetree' "$(agx_path "$src")" || die "$src has a devicetree line; review it by hand"
-	id="$(bk_boot_entry_id "$1")"
-	sed -e "s/$(sed_left "$AGX_RUNNING_KREL")/$(sed_right "$1")/g" \
-		-e "s/^title .*/title agx GPU kernel ($(sed_right "$1"))/" "$(agx_path "$src")" \
-		| write_file "$BLS_DIR/$id.conf" 0644
-	bk_relabel "$BLS_DIR/$id.conf"
+# Kernel package (make binrpm-pkg). Only the kernel package is installed, not kernel-headers or
+# kernel-devel: the distro's kernel-headers package belongs to the C library.
+BACKEND_BUILD_DEPS="gcc make flex bison bc perl rsync kmod cpio dwarves elfutils-libelf-devel openssl-devel rpm-build rust rust-src bindgen-cli clang lld"
+bk_kernel_make_vars() { :; }
+bk_kernel_pkg_out() { printf "'%s'/rpmbuild/RPMS/aarch64/kernel-[0-9]*.rpm" "$1"; }
+bk_kernel_pkg_file() { newest_file "$AGX_PKG_DIR" "kernel-$(printf '%s' "$1" | tr - _)-*.aarch64.rpm"; }
+bk_dtb_dir() { printf '/usr/lib/modules/%s/dtb' "$1"; }
+BACKEND_KERNEL_NOTE="binrpm-pkg takes the package release from the kernel build counter, and its module stripping is not set yet: check both at the first real build"
+
+# The package's %post runs kernel-install: dracut builds the initramfs (with dracut-asahi) and the
+# Boot Loader Spec entry is written. With UPDATEDEFAULT=no the default entry stays.
+# binrpm-pkg names the package "kernel". The Fedora repositories have an unrelated "kernel" package
+# (4K pages, no Apple support; Fedora Asahi Remix uses kernel-16k), so dnf must not offer it.
+bk_kernel_pre_install() {
+	run dnf config-manager setopt fedora.excludepkgs=kernel updates.excludepkgs=kernel updates-testing.excludepkgs=kernel
+	bk_keep_default_on_update
+}
+# rpm installs kernels side by side, and two builds of one release share their files. So a
+# replace removes the installed build first. The running kernel is the distro kernel.
+bk_kernel_pkg_install() {
+	[ "$2" != replace ] || run dnf remove -y "kernel-$(printf '%s' "$AGX_KREL" | tr - _)"
+	run dnf install -y "$1"
+}
+bk_kernel_post_install() {
+	require_after "no Boot Loader Spec entry for $1 after the package install" [ -n "$(bls_entry_of "$1")" ]
 }
 bk_boot_once() { run grub2-reboot "$1"; }
 bk_set_default() { run grub2-set-default "$1"; }

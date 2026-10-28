@@ -40,3 +40,12 @@ tsv_lookup() {
 }
 
 json_escape() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
+
+# SHA-256 of a file (sha256sum on Linux, shasum on macOS).
+sha256_file() {
+	if command -v sha256sum > /dev/null 2>&1; then
+		sha256sum "$1" | cut -d' ' -f1
+	else
+		shasum -a 256 "$1" | cut -d' ' -f1
+	fi
+}

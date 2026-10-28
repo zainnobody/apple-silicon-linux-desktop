@@ -4,15 +4,16 @@
 # Debian family, Fedora and Arch. All steps are dry runs (lib/run.sh).
 #
 # Stage map: A = backup, B = mesa + kernel, C/D/E = bootbin-build + bootbin-use + boot-once,
-# F/H/I/J = kernel-replace (a rebuilt image), G = mesa-select, K = default, macOS switch =
+# F/H/I/J/N/O = kernel-replace (a rebuilt kernel), G = mesa-select, K = default, macOS switch =
 # macos-switch. Stage L (two modules added to a running kernel) is not needed: the pack's
-# kernel build has CONFIG_USB4_APPLE_SOC=m and the Bluetooth patch.
+# kernel package has CONFIG_USB4_APPLE_SOC=m and the Bluetooth patch.
 
-# Build output of `agx build` (later phase) or of agx-linux-kit: kernel-<release>/,
-# mesa-stage/<prefix>, m1n1/m1n1.bin and the kernel-release file.
+# Build output: packages/ from `agx build-kernel` (the kernel package and the kernel-release file),
+# and from agx-linux-kit mesa-stage/<prefix> and m1n1/m1n1.bin.
 AGX_USER="${AGX_USER:-${SUDO_USER:-$(id -un)}}"
 AGX_STAGE_DIR="${AGX_STAGE_DIR:-$HOME/agx-work/out}"
-AGX_KREL="${AGX_KREL:-$(cat "$AGX_STAGE_DIR/kernel-release" 2>/dev/null || true)}"
+AGX_PKG_DIR="${AGX_PKG_DIR:-$AGX_STAGE_DIR/packages}"
+AGX_KREL="${AGX_KREL:-$(cat "$AGX_PKG_DIR/kernel-release" 2>/dev/null || true)}"
 AGX_M1N1_BIN="${AGX_M1N1_BIN:-$AGX_STAGE_DIR/m1n1/m1n1.bin}"
 AGX_LOCALVERSION="${AGX_LOCALVERSION:--agx}"
 MESA_PREFIX="${MESA_PREFIX:-/opt/mesa-agx}"
@@ -51,9 +52,21 @@ note_unreadable() {
 	[ -z "$u" ] || echo "Note: this user cannot read $u. Run with sudo for an exact plan (it stays a dry run)."
 }
 
-need_kernel_build() {
-	[ -n "$AGX_KREL" ] || die "no kernel release: set AGX_KREL or build the kernel first"
-	[ -f "$AGX_STAGE_DIR/kernel-$AGX_KREL/boot/vmlinuz-$AGX_KREL" ] || die "no built kernel in $AGX_STAGE_DIR/kernel-$AGX_KREL"
+# Newest file in folder $1 that matches the pattern $2, in version order. Empty if none.
+newest_file() {
+	local f last=""
+	# shellcheck disable=SC2086  # $2 is a pattern; the folder has no spaces
+	for f in $(printf '%s\n' "$1"/$2 | sort -V); do
+		[ -f "$f" ] && last="$f"
+	done
+	printf '%s' "$last"
+}
+
+# The kernel package of release $AGX_KREL for this distro family, in AGX_KERNEL_PKG.
+need_kernel_pkg() {
+	[ -n "$AGX_KREL" ] || die "no kernel release: set AGX_KREL or run agx build-kernel first"
+	AGX_KERNEL_PKG="$(bk_kernel_pkg_file "$AGX_KREL")"
+	[ -n "$AGX_KERNEL_PKG" ] || die "no $BACKEND_KERNEL_FORMAT package of kernel $AGX_KREL in $AGX_PKG_DIR (run agx build-kernel)"
 }
 
 step_backup() {
@@ -100,42 +113,35 @@ step_mesa() {
 	bk_relabel "$MESA_PREFIX"
 }
 
-# <new | replace>. New adds a boot entry. Replace backs up the installed kernel first.
+# <new | replace>. The package manager installs the kernel package. The package's own scripts
+# build the initramfs and the boot entry (backends/*.sh). A replace installs a newer build of
+# the same release and keeps a copy of the installed one.
 step_kernel() {
-	local mode="${1:-new}" k="$AGX_KREL" ks m
-	need_kernel_build
-	ks="$AGX_STAGE_DIR/kernel-$k"
+	local mode="${1:-new}" k="$AGX_KREL" m bk
+	need_kernel_pkg
 	m="/usr/lib/modules/$k"
-	echo "== kernel-$mode: kernel $k"
+	echo "== kernel-$mode: kernel $k from $(basename "$AGX_KERNEL_PKG")"
 	[ "$AGX_RUNNING_KREL" != "$k" ] || die "boot the distro kernel before installing $k"
 	if [ "$mode" = new ]; then
 		[ ! -e "$(agx_path "$m")" ] || die "$m exists already (use the kernel-replace step)"
 	else
 		[ -e "$(agx_path "$m")" ] || die "no installed $k to replace (use the kernel step)"
-		local bk
 		bk="/root/agx-backup/$(date +%Y%m%d-%H%M%S)-pre-replace"
 		run mkdir -p "$bk"
-		run cp -a "/boot/vmlinuz-$k" "/boot/config-$k" "/boot/System.map-$k" "$m" "$bk/"
-		run rm -rf "$m"
+		run cp -a "$m" "$bk/modules"
+		[ ! -e "$(agx_path "/boot/vmlinuz-$k")" ] || run cp -a "/boot/vmlinuz-$k" "/boot/config-$k" "/boot/System.map-$k" "$bk/"
+		echo "  undo: install the previous package file from $AGX_PKG_DIR again"
 	fi
-	run cp -a "$ks/lib/modules/$k" "$m"
-	run chown -R root:root "$m"
-	run rm -f "$m/build" "$m/source"
-	run depmod -a "$k"
-	run install -m 0755 "$ks/boot/vmlinuz-$k" "/boot/vmlinuz-$k"
-	run install -m 0644 "$ks/boot/config-$k" "/boot/config-$k"
-	run install -m 0644 "$ks/boot/System.map-$k" "/boot/System.map-$k"
-	run mkdir -p "/boot/dtb-$k"
-	run cp -a "$ks/dtb/apple" "/boot/dtb-$k/"
-	bk_relabel "$m" "/boot/vmlinuz-$k" "/boot/config-$k" "/boot/System.map-$k" "/boot/dtb-$k"
-	bk_initramfs "$k"
-	[ "$mode" != new ] || bk_boot_entry_add "$k"
+	bk_kernel_pre_install "$mode"
+	bk_kernel_pkg_install "$AGX_KERNEL_PKG" "$mode"
+	bk_kernel_post_install "$k"
 }
 
 # <dtb | gpu>: m1n1 + the kernel's DTBs + U-Boot + options, as update-m1n1 builds it.
 # dtb has no new options (GPU off). gpu adds the profile's GPU and display options.
 step_bootbin_build() {
-	local stage="$1" dtbs="/boot/dtb-$AGX_KREL/apple" target opts="" o
+	local stage="$1" dtbs target opts="" o
+	dtbs="$(bk_dtb_dir "$AGX_KREL")/apple"
 	target="$ESP_M1N1/boot.bin.$stage"
 	case "$stage" in
 	dtb) ;;

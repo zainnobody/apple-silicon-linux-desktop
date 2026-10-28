@@ -1,0 +1,7 @@
+# Kernel patches, applied in this order on KERNEL_COMMIT (kernel/source.conf).
+# Format: <sha256>  <file in kernel/patches/>. Written by tools/sync-kit-patches.sh from
+# agx-linux-kit commit f81159e.
+b01d53e188fed9699bcb022143fd5615197c0981c844e860c94733f92c6f00f4  m3-kernel-tree-2026-10-26.patch
+054594a7d1ce2942ef75194ab8d5d740a7f37179f55bf0136e3fe73f1ee85f3b  g15-perf-tgt-util.patch
+c087030f50e29ec0374434d82d921e689110f460332578069eef281e8370a865  g15-recovery-drain-halt.patch
+6a49583e75d5a9d72b2a2db6587465d9fe758a18ff5eb0f4f318272b5fea387f  macsmc-hwmon-ftst-unlock.patch

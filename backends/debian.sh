@@ -21,21 +21,32 @@ boot_update_cmd() { printf 'update-grub'; }
 
 bk_pkg_install() { run apt-get install -y "$@"; }
 bk_relabel() { :; }   # no SELinux labels by default
-bk_initramfs() { run update-initramfs -c -k "$1"; }
 bk_backup_boot_config() { grub_backup "$1"; }
 bk_stock_entry_id() { grub_entry_id "$AGX_RUNNING_KREL"; }
 bk_boot_entry_id() { grub_entry_id "$1"; }
 
-# update-grub sorts the newest kernel first and makes it the default. So first pin the
-# running kernel as the saved default, then add the new kernel.
-bk_boot_entry_add() {
+# Kernel package (make bindeb-pkg). linux-libc-dev and the debug package are not installed:
+# linux-libc-dev would replace the distro's C library headers.
+BACKEND_BUILD_DEPS="build-essential bc bison flex libssl-dev libelf-dev dwarves rsync cpio kmod dpkg-dev rustc rust-src bindgen clang lld (names not verified)"
+bk_kernel_make_vars() { printf 'KDEB_PKGVERSION=%s-%s INSTALL_MOD_STRIP=1' "$1" "$AGX_PKG_REV"; }
+bk_kernel_pkg_out() { printf "'%s'/../linux-image-[0-9]*.deb '%s'/../linux-headers-*.deb" "$1" "$1"; }
+bk_kernel_pkg_file() { newest_file "$AGX_PKG_DIR" "linux-image-$1_*_arm64.deb"; }
+bk_dtb_dir() { printf '/usr/lib/linux-image-%s' "$1"; }
+
+# The package's own scripts build the initramfs (initramfs-tools, with the agx firmware hook) and
+# run update-grub (zz-update-grub). update-grub makes the newest kernel the default, so a new kernel
+# first pins the running one. A replace keeps the saved default as it is.
+bk_kernel_pre_install() {
 	local stock
+	grub_use_saved
+	[ "$1" = new ] || return 0
 	stock="$(bk_stock_entry_id)"
 	[ -n "$stock" ] || die "no GRUB entry for the running kernel $AGX_RUNNING_KREL in $GRUB_CFG"
-	grub_use_saved
 	run grub-set-default "$stock"
-	run update-grub
 }
+# A newer package version of the same release replaces the installed one in place.
+bk_kernel_pkg_install() { run apt-get install -y "$1"; }
+bk_kernel_post_install() { :; }
 bk_boot_once() { grub_use_saved; run grub-reboot "$1"; }
 bk_set_default() { run grub-set-default "$1"; }
 bk_keep_default_on_update() { grub_use_saved; }
