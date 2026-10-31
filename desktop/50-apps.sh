@@ -1,6 +1,6 @@
 #!/bin/bash
 # Dolphin like Finder (global view settings, list view with Name, Date Modified, Size, Kind; icon-only toolbar; no in-window menu bar)
-# and Konsole like Terminal.app (Basic and Pro look, Hack 11 pt, block cursor, no toolbar, tabs only when needed).
+# and Konsole like Terminal.app (Basic and Pro look, Hack 11 pt, block cursor, tabs only when needed).
 # Close Dolphin and Konsole before you run this, or they write their old settings back when they quit.
 . "$(dirname "$0")/lib.sh"
 [ "${DESIGN_NO_BACKUP:-0}" = 1 ] || backup 50-apps
@@ -96,6 +96,4 @@ kw konsolerc DefaultProfile AppleLight.profile "Desktop Entry"
 kwb konsolerc ShowMenuBarByDefault false KonsoleWindow
 kw konsolerc TabBarVisibility ShowTabBarWhenNeeded TabBar
 kw konsolerc MenuBar Disabled MainWindow
-kwb konsolerc Hidden true MainWindow "Toolbar mainToolBar"
-kwb konsolerc Hidden true MainWindow "Toolbar sessionToolbar"
 say "Dolphin and Konsole set. Open them again to see the change."

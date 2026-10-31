@@ -18,6 +18,10 @@ kwb kwinrc BlurBackground false Effect-overview
 
 if session_up; then
 	reload_kwin
+	# reconfigure does not unload a running effect, so unload the heavy ones now
+	for e in blur contrast wobblywindows magiclamp; do
+		busctl --user call org.kde.KWin /Effects org.kde.kwin.Effects unloadEffect s "$e" >/dev/null 2>&1 || true
+	done
 	systemctl --user restart plasma-kglobalaccel.service || true
 fi
 say "Search and effects set."
