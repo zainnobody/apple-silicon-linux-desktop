@@ -317,7 +317,7 @@ Item {
                     text: "Touch ID: rest your finger on the power key"
                     visible: text !== ""
                     color: Kirigami.Theme.textColor
-                    font.pointSize: Kirigami.Theme.smallFont.pointSize
+                    font.pointSize: Kirigami.Theme.defaultFont.pointSize
                     Accessible.role: Accessible.StaticText
                 }
             }

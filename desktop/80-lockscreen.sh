@@ -31,7 +31,13 @@ make_pkg() { # id [flat|stock] [visible]   flat = our lock screen, stock = syste
 		rm -rf "$dst/contents/lockscreen"; mkdir -p "$dst/contents/lockscreen"
 		cp "$PKG"/*.qml "$PKG"/*.xml "$PKG"/qmldir "$dst/contents/lockscreen/"
 	fi
-	[ "$vis" = visible ] && sed -i 's/property bool uiVisible: false/property bool uiVisible: true/' "$dst/contents/lockscreen/LockScreenUi.qml"
+	# Test variants only: keep the prompt on screen. The real QML hides it on the first mouse move, on pointer exit and after 10 s.
+	if [ "$vis" = visible ]; then
+		sed -i -e 's/property bool uiVisible: false/property bool uiVisible: true/' \
+			-e 's/uiVisible = seenPositionChange;/uiVisible = true;/' \
+			-e 's/interval: 10000/interval: 3600000/' \
+			-e '/onExited: {/,/}/ s/uiVisible = false;/uiVisible = true;/' "$dst/contents/lockscreen/LockScreenUi.qml"
+	fi
 	sed -i "s/\"Id\": \"org.kde.plasma.desktop\"/\"Id\": \"$id\"/" "$dst/metadata.json"
 }
 set_wallpaper() { # colour value
