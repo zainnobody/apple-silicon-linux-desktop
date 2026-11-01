@@ -5,7 +5,7 @@
 . "$(dirname "$0")/lib.sh"
 session_up || { say "No Plasma session. Log in on the desktop, then run this again."; exit 1; }
 [ "${DESIGN_NO_BACKUP:-0}" = 1 ] || backup 30-panels
-TOP_HEIGHT="${TOP_HEIGHT:-30}"; DOCK_HEIGHT="${DOCK_HEIGHT:-56}"
+TOP_HEIGHT="${TOP_HEIGHT:-30}"; DOCK_HEIGHT="${DOCK_HEIGHT:-68}"
 
 # Pin only apps that exist.
 pins=""
