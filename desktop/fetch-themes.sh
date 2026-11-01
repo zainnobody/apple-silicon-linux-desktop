@@ -1,5 +1,5 @@
 #!/bin/bash
-# Download the pinned WhiteSur repositories. Each goes into its own new folder. No root. Needs network.
+# Download the pinned WhiteSur-kde repository (colours, window decoration, Plasma theme). The icon and cursor repositories only with M3_APPLE_LOOKALIKE=1. Each goes into its own new folder. No root. Needs network.
 . "$(dirname "$0")/lib.sh"
 mkdir -p "$DL"
 get() { # name sha
@@ -13,5 +13,7 @@ get() { # name sha
 	say "$1 $(git -C "$d" rev-parse HEAD) $(du -sh "$d" | cut -f1)"
 }
 get WhiteSur-kde "$WHITESUR_KDE"
-get WhiteSur-icon-theme "$WHITESUR_ICONS"
-get WhiteSur-cursors "$WHITESUR_CURSORS"
+if [ "${M3_APPLE_LOOKALIKE:-0}" = 1 ]; then # Apple look-alike art, off by default
+	get WhiteSur-icon-theme "$WHITESUR_ICONS"
+	get WhiteSur-cursors "$WHITESUR_CURSORS"
+fi

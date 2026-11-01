@@ -8,7 +8,7 @@ These scripts work at user level. They need no root and install no package.
 - KDE Plasma 6 on Wayland. Tested on Fedora Asahi Remix 44 (Plasma 6.7.5).
 - Fonts: Adwaita Sans and Hack are in Fedora. On other distros install Inter (or keep Adwaita Sans) and Hack. SF Pro cannot be shipped.
 - `git`, `kwriteconfig6`, `plasma-apply-*` tools (part of Plasma).
-- Network, one time: `fetch-themes.sh` downloads three GPL-3.0 repositories at pinned commits (about 180 MB).
+- Network, one time: `fetch-themes.sh` downloads one GPL-3.0 repository (WhiteSur-kde) at a pinned commit (about 26 MB).
 
 ## Run
 
@@ -22,9 +22,9 @@ Close Dolphin and Konsole before stage 50.
 | Stage | File | What it does |
 |---|---|---|
 | 0 | `backup.sh LABEL` | Backs up `~/.config` and the KDE data folders. Writes `*-undo.sh`. |
-| 1 | `fetch-themes.sh` | Downloads WhiteSur-kde, WhiteSur-icon-theme and WhiteSur-cursors at pinned commits. |
-| 2 | `10-themes.sh` | Copies the flat parts: opaque window decoration, a solid Plasma theme, colour schemes, icons, cursors. Runs no upstream script. |
-| 3 | `20-appearance.sh [light\|dark]` | Fonts, colours, icons, cursor, window buttons on the left (close, minimize, zoom). |
+| 1 | `fetch-themes.sh` | Downloads WhiteSur-kde at a pinned commit (colours, window decoration, Plasma theme). |
+| 2 | `10-themes.sh` | Copies the flat parts: opaque window decoration, a solid Plasma theme, colour schemes. Runs no upstream script. |
+| 3 | `20-appearance.sh [light\|dark]` | Fonts, colours, Breeze icons and cursor, window buttons on the left (close, minimize, zoom). |
 | 4 | `40-search-and-overview.sh` | Meta+Space opens KRunner in the middle of the screen. Blur, wobbly windows and magic lamp are off. |
 | 5 | `50-apps.sh` | Dolphin like Finder. Konsole like Terminal.app (Basic and Pro looks). |
 | 6 | `60-notifications.sh` | Banners at the top right. |
@@ -73,3 +73,16 @@ Run the `*-undo.sh` of the stage in `~/desktop-design-backups/`. It restores the
 - A Mac keyboard sends the Cmd key as Meta (Super) on Linux.
 - The Plasma login screen is not changed. That needs root (see `root-options/plasmalogin-flat.sh`).
 - The flat lock screen is a copy of a part of the Plasma shell. After a big Plasma update, run `80-lockscreen.sh install` again to see if it still fits.
+
+## Licences and Apple material
+
+This pack aims to look like macOS without copying Apple artwork. This is not legal advice.
+
+- **Icons and cursors:** KDE Breeze (original KDE art, installed with Plasma). The WhiteSur icon and cursor sets copy Apple icons (Finder, App Store and others) and the macOS pointer.
+  The pack does not install them. `M3_APPLE_LOOKALIKE=1` brings them back for private use only. Do not ship them.
+- **Colours, window decoration, Plasma theme:** WhiteSur-kde by vinceliuice (GPL-3.0, https://github.com/vinceliuice/WhiteSur-kde, pinned commit in `lib.sh`).
+  Flat shapes and colour values only. A search of the installed files found no Apple logo and no Apple name. The red, yellow and green window buttons follow a common convention.
+- **Fonts:** Adwaita Sans and Hack. SF Pro is never used or shipped.
+- **Wallpaper, lock screen, sharing icon:** drawn for this pack (`assets/make-wallpaper.py`, `lockscreen/`, `m3-airdrop.svg`).
+- **Names:** Konsole profiles are "M3 Light" and "M3 Dark". The lock screen hint says "Fingerprint", not "Touch ID". The sharing UI says "Share nearby". Other docs may use the words
+  macOS, AirDrop or Touch ID to name the Apple features that the pack works with.

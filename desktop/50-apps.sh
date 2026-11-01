@@ -61,10 +61,10 @@ scheme() { # file description bg fg then 16 colours (normal 0-7, bright 0-7), ea
 		echo "[General]"; echo "Blur=false"; echo "ColorRandomization=false"; echo "Description=$desc"; echo "Opacity=1"; echo "Wallpaper="
 	} >"$KD/$f.colorscheme"
 }
-scheme AppleLight "Apple Basic" "255,255,255" "0,0,0" \
+scheme M3Light "M3 Light" "255,255,255" "0,0,0" \
 	"0,0,0" "153,0,0" "0,166,0" "153,153,0" "0,0,178" "178,0,178" "0,166,178" "191,191,191" \
 	"102,102,102" "230,0,0" "0,217,0" "230,230,0" "0,0,255" "230,0,230" "0,230,230" "230,230,230"
-scheme AppleDark "Apple Pro" "28,28,30" "242,242,242" \
+scheme M3Dark "M3 Dark" "28,28,30" "242,242,242" \
 	"0,0,0" "194,54,33" "37,188,36" "173,173,39" "73,46,225" "211,56,211" "51,187,200" "203,204,205" \
 	"129,131,131" "252,57,31" "49,231,34" "234,236,35" "88,51,255" "249,53,248" "20,240,240" "233,235,235"
 profile() { # file name scheme
@@ -90,9 +90,9 @@ HistorySize=10000
 ScrollBarPosition=2
 PROF
 }
-profile AppleLight.profile "Apple Light" AppleLight
-profile AppleDark.profile "Apple Dark" AppleDark
-kw konsolerc DefaultProfile AppleLight.profile "Desktop Entry"
+profile M3Light.profile "M3 Light" M3Light
+profile M3Dark.profile "M3 Dark" M3Dark
+kw konsolerc DefaultProfile M3Light.profile "Desktop Entry"
 kwb konsolerc ShowMenuBarByDefault false KonsoleWindow
 kw konsolerc TabBarVisibility ShowTabBarWhenNeeded TabBar
 kw konsolerc MenuBar Disabled MainWindow

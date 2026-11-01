@@ -1,11 +1,11 @@
 #!/bin/bash
-# Install the WhiteSur colour schemes, window decoration, Plasma theme, icons and cursors for this user.
+# Install the WhiteSur colour schemes, window decoration and Plasma theme for this user (icons and cursors only with M3_APPLE_LOOKALIKE=1).
 # Source: github.com/vinceliuice/WhiteSur-kde, -icon-theme, -cursors (GPL-3.0), fetched by fetch-themes.sh at pinned commits.
 # Only flat parts are installed: opaque window decoration, a "solid" Plasma theme (no see-through panels), no Kvantum, no SDDM.
 # No upstream script is run. This script only copies files out of the downloaded folders.
 # Undo: ./backup.sh makes the undo script before this runs. Installed folders are listed in $DATA/m3-design-installed.txt.
 . "$(dirname "$0")/lib.sh"
-KDE="$DL/WhiteSur-kde-$WHITESUR_KDE"; ICO="$DL/WhiteSur-icon-theme-$WHITESUR_ICONS"; CUR="$DL/WhiteSur-cursors-$WHITESUR_CURSORS"
+KDE="$DL/WhiteSur-kde-$WHITESUR_KDE"; ICO="$DL/WhiteSur-icon-theme-$WHITESUR_ICONS"; CUR="$DL/WhiteSur-cursors-$WHITESUR_CURSORS"  # used only with M3_APPLE_LOOKALIKE=1
 for d in "$KDE" "$ICO" "$CUR"; do [ -d "$d" ] || { say "missing $d. Run fetch-themes.sh first."; exit 1; }; done
 backup 10-themes
 LOG="$DATA/m3-design-installed.txt"; : >"$LOG"
@@ -42,6 +42,9 @@ for pair in "WhiteSur:WhiteSur-solid" "WhiteSur-dark:WhiteSur-solid-dark"; do
 	echo "$DATA/plasma/desktoptheme/$dst" >>"$LOG"
 done
 
+# Icons and cursors: the WhiteSur sets copy Apple artwork (Finder, App Store and other icons, the macOS cursor).
+# They are not installed unless you set M3_APPLE_LOOKALIKE=1. Do not do that in a product you distribute.
+if [ "${M3_APPLE_LOOKALIKE:-0}" = 1 ]; then
 # Icons: WhiteSur, copied by this script (the upstream installer is not run). Three sets, as upstream builds them:
 #   WhiteSur       base set, light symbolic icons for dark panels. Used in dark mode.
 #   WhiteSur-light base set with dark symbolic icons for light panels. Used in light mode.
@@ -109,6 +112,7 @@ rm -rf "$DATA/icons/WhiteSur-cursors"
 mkdir -p "$DATA/icons/WhiteSur-cursors"
 cp -r "$CUR/dist/." "$DATA/icons/WhiteSur-cursors/"
 echo "$DATA/icons/WhiteSur-cursors" >>"$LOG"
+fi
 
 say "Installed. List: $LOG"
 

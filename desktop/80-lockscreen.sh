@@ -84,7 +84,8 @@ if [ "\$now" != "\$(cat "\$STATE/system-shell.sha" 2>/dev/null)" ]; then
 fi
 GUARDEOF
 	chmod +x "$GUARD"
-	set_wallpaper "$LOCK_COLOR"
+	# Keep a wallpaper that is already set (for example by 90-fit16.sh). Set the flat colour only when none is set.
+	[ -n "$(kreadconfig6 --file kscreenlockerrc --group Greeter --key WallpaperPlugin)" ] || set_wallpaper "$LOCK_COLOR"
 	say "Installed. The flat lock screen is used from the next lock. plasmashell loads the copy at the next login (it is identical code)." ;;
 remove)
 	rm -rf "$SHELLS/org.kde.plasma.desktop" "$SHELLS"/org.m3.* "$GUARD" "$STATE"

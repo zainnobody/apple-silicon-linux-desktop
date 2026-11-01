@@ -7,9 +7,12 @@
 . "$(dirname "$0")/lib.sh"
 mode="${1:-light}"
 UI_FONT="${UI_FONT:-Adwaita Sans}"; MONO_FONT="${MONO_FONT:-Hack}"
+# Icons and cursors are the KDE Breeze sets (original art, installed with Plasma). The WhiteSur icon and cursor sets copy Apple artwork,
+# so this pack does not use them. Override with ICON_LIGHT, ICON_DARK and CURSORS only for a set you may use.
+CURSORS="${CURSORS:-breeze_cursors}"
 case "$mode" in
-light) SCHEME=WhiteSur; PTHEME=WhiteSur-solid; ICONS=WhiteSur-light; DECO=WhiteSur-opaque; PROFILE=AppleLight.profile ;;
-dark) SCHEME=WhiteSurDark; PTHEME=WhiteSur-solid-dark; ICONS=WhiteSur-dark; DECO=WhiteSur-dark-opaque; PROFILE=AppleDark.profile ;;
+light) SCHEME=WhiteSur; PTHEME=WhiteSur-solid; ICONS=${ICON_LIGHT:-breeze}; DECO=WhiteSur-opaque; PROFILE=M3Light.profile ;;
+dark) SCHEME=WhiteSurDark; PTHEME=WhiteSur-solid-dark; ICONS=${ICON_DARK:-breeze-dark}; DECO=WhiteSur-dark-opaque; PROFILE=M3Dark.profile ;;
 *) say "usage: $0 [light|dark]"; exit 2 ;;
 esac
 [ -d "$DATA/aurorae/themes/$DECO" ] || { say "Run 10-themes.sh first."; exit 1; }
@@ -24,7 +27,7 @@ kw kdeglobals fixed "$(font "$MONO_FONT" 10)" General
 kw kdeglobals activeFont "$(font "$UI_FONT" 10 600)" WM
 kw kdeglobals inactiveFont "$(font "$UI_FONT" 10 600)" WM
 
-# Icons and toolbar style (icon only, like Finder)
+# Icons and toolbar style (icon only)
 kw kdeglobals Theme "$ICONS" Icons
 kw kdeglobals ToolButtonStyle NoText "Toolbar style"
 kw kdeglobals ToolButtonStyleOtherToolbars NoText "Toolbar style"
@@ -44,7 +47,7 @@ kw konsolerc DefaultProfile "$PROFILE" "Desktop Entry"
 if ! session_up; then export QT_QPA_PLATFORM=offscreen; fi
 plasma-apply-colorscheme "$SCHEME" || say "colour scheme not applied"
 plasma-apply-desktoptheme "$PTHEME" || say "Plasma theme not applied"
-plasma-apply-cursortheme WhiteSur-cursors || say "cursor not applied"
+plasma-apply-cursortheme "$CURSORS" || say "cursor not applied"
 notify_change 1; notify_change 4; notify_change 6
 reload_kwin
 say "Appearance: $mode"
