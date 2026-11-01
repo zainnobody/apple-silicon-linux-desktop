@@ -28,7 +28,8 @@ Close Dolphin and Konsole before stage 50.
 | 4 | `40-search-and-overview.sh` | Meta+Space opens KRunner in the middle of the screen. Blur, wobbly windows and magic lamp are off. |
 | 5 | `50-apps.sh` | Dolphin like Finder. Konsole like Terminal.app (Basic and Pro looks). |
 | 6 | `60-notifications.sh` | Banners at the top right. |
-| 7 | `30-panels.sh` | Top bar (launcher, global menu, tray, clock). Floating centred dock with icons only and Trash. |
+| 7 | `70-input.sh` | Trackpad, mouse and keyboard like macOS. Natural scrolling, tap to click, two-finger right click, key repeat 500 ms and 12 per second. Tune with `m3-input`. |
+| 8 | `30-panels.sh` | Top bar (launcher, global menu, tray, clock). Floating centred dock with icons only and Trash. |
 
 Switch the look later with `m3-appearance light` or `m3-appearance dark`.
 
@@ -39,7 +40,8 @@ Run the `*-undo.sh` of the stage in `~/desktop-design-backups/`. It restores the
 
 ## Limits
 
-- Cmd+C and Cmd+V need a key remap tool that needs root (for example keyd or kinto). This pack does not install one.
+- Cmd+C and Cmd+V need a key remap tool that needs root (for example keyd or kinto). This pack does not install one. A draft is in `root-options/keyd-cmd-as-ctrl.conf` (not applied, not tested).
+- Two-finger swipe between pages has no system setting in KDE. It depends on the app.
 - Dolphin has no column view. It has icons, compact and details.
 - A Mac keyboard sends the Cmd key as Meta (Super) on Linux.
 - SDDM or the Plasma login screen is not changed. That needs root.

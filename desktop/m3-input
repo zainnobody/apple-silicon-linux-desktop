@@ -1,0 +1,63 @@
+#!/bin/bash
+# Tune and apply the macOS-like input settings in the running session (KWin D-Bus), and keep them in kcminputrc.
+# Usage: m3-input status | apply | pointer N | scroll N | natural on|off | mouse apply | mouse-speed N | repeat DELAY_MS RATE
+HERE="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
+. "$HERE/lib.sh"
+session_up || { say "No Plasma session."; exit 1; }
+SVC=org.kde.KWin; IFACE=org.kde.KWin.InputDevice
+
+devices() { busctl --user tree $SVC --list 2>/dev/null | grep '^/org/kde/KWin/InputDevice/event' || true; }
+prop() { busctl --user get-property $SVC "$1" $IFACE "$2" 2>/dev/null | sed -E 's/^[a-z] //; s/^"(.*)"$/\1/'; }
+setp() { # path property type value  (best effort; not every device has every property)
+	busctl --user set-property $SVC "$1" $IFACE "$2" "$3" "$4" 2>/dev/null && echo "  $2=$4" || echo "  $2: not settable here"
+}
+kind() { # path -> touchpad | mouse | other
+	[ "$(prop "$1" touchpad)" = true ] && { echo touchpad; return; }
+	[ "$(prop "$1" pointer)" = true ] && { echo mouse; return; }
+	echo other
+}
+group_of() { echo "Libinput $(prop "$1" vendor) $(prop "$1" product) $(prop "$1" name)"; }
+
+save() { # path key value bool|num
+	local g; read -r -a g <<<"$(group_of "$1")"
+	local name; name=$(prop "$1" name)
+	if [ "$4" = bool ]; then kwb kcminputrc "$2" "$3" Libinput "${g[1]}" "${g[2]}" "$name"; else kw kcminputrc "$2" "$3" Libinput "${g[1]}" "${g[2]}" "$name"; fi
+}
+
+apply_touchpad() { local p=$1
+	echo "touchpad $(prop "$p" name)"
+	setp "$p" naturalScroll b true; setp "$p" tapToClick b true; setp "$p" tapAndDrag b false; setp "$p" tapDragLock b false
+	setp "$p" lmrTapButtonMap b false; setp "$p" clickMethodClickfinger b true; setp "$p" clickMethodAreas b false
+	setp "$p" scrollTwoFinger b true; setp "$p" scrollEdge b false; setp "$p" disableWhileTyping b true
+	setp "$p" pointerAccelerationProfileAdaptive b true; setp "$p" pointerAccelerationProfileFlat b false
+	setp "$p" pointerAcceleration d "${TP_SPEED:-0.6}"; setp "$p" scrollFactor d "${SCROLL_FACTOR:-1.5}"
+}
+apply_mouse() { local p=$1
+	echo "mouse $(prop "$p" name)"
+	setp "$p" naturalScroll b false; setp "$p" pointerAccelerationProfileAdaptive b true; setp "$p" pointerAccelerationProfileFlat b false
+	setp "$p" pointerAcceleration d "${MOUSE_SPEED:-0.3}"; setp "$p" scrollFactor d 1
+	save "$p" NaturalScroll false bool; save "$p" PointerAccelerationProfileAdaptive true bool; save "$p" PointerAccelerationProfileFlat false bool
+	save "$p" PointerAcceleration "${MOUSE_SPEED:-0.3}" num; save "$p" ScrollFactor 1 num
+}
+
+each() { # kind function
+	local p
+	for p in $(devices); do [ "$(kind "$p")" = "$1" ] && "$2" "$p"; done
+}
+
+case "${1:-status}" in
+status)
+	for p in $(devices); do k=$(kind "$p"); [ "$k" = other ] && continue
+		echo "$k $(prop "$p" name): natural=$(prop "$p" naturalScroll) tap=$(prop "$p" tapToClick) speed=$(prop "$p" pointerAcceleration) scroll=$(prop "$p" scrollFactor) dwt=$(prop "$p" disableWhileTyping)"
+	done
+	echo "keyboard: delay=$(kreadconfig6 --file kcminputrc --group Keyboard --key RepeatDelay) ms rate=$(kreadconfig6 --file kcminputrc --group Keyboard --key RepeatRate) /s"
+	;;
+apply) each touchpad apply_touchpad; each mouse apply_mouse ;;
+pointer) TP_SPEED="${2:?value from -1 to 1}"; for p in $(devices); do [ "$(kind "$p")" = touchpad ] && { setp "$p" pointerAcceleration d "$TP_SPEED"; save "$p" PointerAcceleration "$TP_SPEED" num; }; done ;;
+scroll) SCROLL_FACTOR="${2:?value, 1 is the libinput default}"; for p in $(devices); do [ "$(kind "$p")" = touchpad ] && { setp "$p" scrollFactor d "$SCROLL_FACTOR"; save "$p" ScrollFactor "$SCROLL_FACTOR" num; }; done ;;
+natural) v=false; [ "${2:-on}" = on ] && v=true; for p in $(devices); do [ "$(kind "$p")" = touchpad ] && { setp "$p" naturalScroll b "$v"; save "$p" NaturalScroll "$v" bool; }; done ;;
+mouse) each mouse apply_mouse ;;
+mouse-speed) MOUSE_SPEED="${2:?value from -1 to 1}"; each mouse apply_mouse ;;
+repeat) kw kcminputrc RepeatDelay "${2:?delay in ms}" Keyboard; kw kcminputrc RepeatRate "${3:?rate per second}" Keyboard ;;
+*) sed -n '2,3p' "$0"; exit 2 ;;
+esac
