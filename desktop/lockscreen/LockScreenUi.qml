@@ -139,6 +139,9 @@ Item {
             }
             authenticator.startAuthenticating();
         }
+        // M3: start the fingerprint check as soon as the screen locks, like macOS. Stock KDE waits
+        // for a mouse move or key press (uiVisible), so a finger on the Touch ID key did nothing.
+        Component.onCompleted: authenticator.startAuthenticating()
         onBlockUIChanged: {
             if (blockUI) {
                 fadeoutTimer.running = false;
