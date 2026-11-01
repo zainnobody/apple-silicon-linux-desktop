@@ -210,7 +210,7 @@ Item {
             alwaysShowClock: config.alwaysShowClock && !config.hideClockWhenIdle
         }
 
-        Clock {
+        FlatClock {
             id: clock
             visible: y > 0 && config.alwaysShowClock
             anchors.horizontalCenter: parent.horizontalCenter

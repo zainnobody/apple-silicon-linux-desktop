@@ -63,6 +63,22 @@ SessionManagementScreen {
             text: PasswordSync.password
 
             placeholderText: i18ndc("plasma_shell_org.kde.plasma.desktop", "@info:placeholder in text field", "Password")
+            // Flat pill: one solid white fill, no shadow. Fixed colours, because the greeter palette is dark in both modes.
+            Kirigami.Theme.inherit: false
+            Kirigami.Theme.backgroundColor: "#ffffff"
+            Kirigami.Theme.textColor: "#1d1d1f"
+            Kirigami.Theme.disabledTextColor: "#6e6e73"
+            Kirigami.Theme.highlightColor: "#0071e3"
+            color: "#1d1d1f"
+            placeholderTextColor: "#6e6e73"
+            Layout.preferredHeight: Kirigami.Units.gridUnit * 2.4
+            leftPadding: Kirigami.Units.gridUnit
+            background: Rectangle {
+                radius: height / 2
+                color: Kirigami.Theme.backgroundColor
+                border.width: passwordBox.activeFocus ? 2 : 0
+                border.color: Kirigami.Theme.highlightColor
+            }
             focus: true
             enabled: !authenticator.graceLocked
 
@@ -112,10 +128,23 @@ SessionManagementScreen {
         PlasmaComponents3.Button {
             id: loginButton
             Accessible.name: i18ndc("plasma_shell_org.kde.plasma.desktop", "@action:button accessible only", "Unlock")
-            Layout.preferredHeight: passwordBox.implicitHeight
+            Layout.preferredHeight: passwordBox.Layout.preferredHeight
             Layout.preferredWidth: loginButton.Layout.preferredHeight
 
             icon.name: LayoutMirroring.enabled ? "go-previous" : "go-next"
+            Kirigami.Theme.inherit: false
+            Kirigami.Theme.backgroundColor: "#ffffff"
+            Kirigami.Theme.textColor: "#1d1d1f"
+            Kirigami.Theme.highlightColor: "#0071e3"
+            icon.color: "#1d1d1f"
+            icon.width: Kirigami.Units.iconSizes.smallMedium
+            icon.height: Kirigami.Units.iconSizes.smallMedium
+            background: Rectangle {
+                radius: width / 2
+                color: Kirigami.Theme.backgroundColor
+                border.width: loginButton.activeFocus ? 2 : 0
+                border.color: Kirigami.Theme.highlightColor
+            }
 
             onClicked: sessionManager.startLogin()
             Keys.onEnterPressed: clicked()
@@ -128,7 +157,7 @@ SessionManagementScreen {
         required property int kind
         required property string label
 
-        visible: authenticator.authenticatorTypes & kind
+        visible: (authenticator.authenticatorTypes & kind) && text !== ""
         text: label
         textFormat: Text.PlainText
         horizontalAlignment: Text.AlignHCenter
@@ -160,7 +189,7 @@ SessionManagementScreen {
 
     FailableLabel {
         kind: ScreenLocker.Authenticator.Fingerprint
-        label: i18ndc("plasma_shell_org.kde.plasma.desktop", "@info:usagetip", "(or scan your fingerprint on the reader)")
+        label: "" // the hint "Fingerprint: rest your finger on the power key" is in LockScreenUi.qml; errors still show here
     }
     FailableLabel {
         kind: ScreenLocker.Authenticator.Smartcard
