@@ -33,6 +33,28 @@ Close Dolphin and Konsole before stage 50.
 
 Switch the look later with `m3-appearance light` or `m3-appearance dark`.
 
+## Lock screen (stage 80, optional, not part of apply-all.sh)
+
+`80-lockscreen.sh` restyles the KDE lock screen: one flat colour, big clock, avatar, name, password field, a Touch ID hint. It has no blur, no shadow and no glass.
+It needs no root. It does not change PAM, fprintd or the login screen. Fingerprint unlock keeps working the way PAM sets it up.
+
+```bash
+./80-lockscreen.sh build      # test packages only. The real lock screen does not change.
+./80-lockscreen.sh test flat  # a test window for 20 seconds, no lock. Also: test stock
+./80-lockscreen.sh install    # use it for real. Backup first.
+./80-lockscreen.sh remove     # the stock lock screen is back
+./80-lockscreen.sh colour '#0b3d91'   # or: image /path/to/file.png
+```
+
+In Plasma 6.7 the lock screen QML is part of the desktop shell package `org.kde.plasma.desktop`. `install` puts a full user copy of that package in
+`~/.local/share/plasma/shells`. Plasma takes the user copy first. Only the `lockscreen` folder differs from the system package.
+A guard script in `~/.config/plasma-workspace/env` removes the copy at login when the system package has changed (a Plasma update). The stock lock screen then comes back.
+If the greeter cannot load the QML, Plasma falls back to its built-in locker. To get out of a stuck lock, run `loginctl unlock-session` over SSH.
+
+Test windows need an unlocked session. A locked session gives blank screenshots.
+
+The login screen (Plasma Login Manager) needs root. `root-options/plasmalogin-flat.sh` sets the same flat colour there. It is a draft and is not tested.
+
 ## Undo
 
 Run the `*-undo.sh` of the stage in `~/desktop-design-backups/`. It restores the saved config files. Log out first, or run it from SSH.
@@ -44,4 +66,5 @@ Run the `*-undo.sh` of the stage in `~/desktop-design-backups/`. It restores the
 - Two-finger swipe between pages has no system setting in KDE. It depends on the app.
 - Dolphin has no column view. It has icons, compact and details.
 - A Mac keyboard sends the Cmd key as Meta (Super) on Linux.
-- SDDM or the Plasma login screen is not changed. That needs root.
+- The Plasma login screen is not changed. That needs root (see `root-options/plasmalogin-flat.sh`).
+- The flat lock screen is a copy of a part of the Plasma shell. After a big Plasma update, run `80-lockscreen.sh install` again to see if it still fits.
