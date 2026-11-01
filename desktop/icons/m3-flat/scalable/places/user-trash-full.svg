@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <!-- M3 Flat: Trash, full. Original drawing. -->
+  <rect x="22" y="34" width="84" height="10" rx="5" fill="#aeb6c4"/>
+  <rect x="50" y="22" width="28" height="12" rx="6" fill="#aeb6c4"/>
+  <path d="M30 52h68l-6 56a8 8 0 0 1-8 7H44a8 8 0 0 1-8-7z" fill="#cfd5df"/>
+  <path d="M54 62v42M74 62v42" stroke="#aeb6c4" stroke-width="7" stroke-linecap="round"/>
+  <path d="M44 34l-6-10 14 4M84 34l6-12-14 6" fill="none" stroke="#f97316" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

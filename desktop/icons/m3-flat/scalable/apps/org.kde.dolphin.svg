@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <!-- M3 Flat: Files. Original drawing. -->
+  <rect x="4" y="4" width="120" height="120" rx="28" fill="#2f6df6"/>
+  <path d="M26 44a8 8 0 0 1 8-8h18l8 9h34a8 8 0 0 1 8 8v8H26z" fill="#b9d2ff"/>
+  <rect x="26" y="54" width="76" height="42" rx="8" fill="#ffffff"/>
+</svg>

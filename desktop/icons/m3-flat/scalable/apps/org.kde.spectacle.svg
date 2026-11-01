@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <!-- M3 Flat: Screenshot. Corner marks and a dot. Original drawing. -->
+  <rect x="4" y="4" width="120" height="120" rx="28" fill="#8b5cf6"/>
+  <path d="M36 54V42a6 6 0 0 1 6-6h12M92 54V42a6 6 0 0 0-6-6H74M36 74v12a6 6 0 0 0 6 6h12M92 74v12a6 6 0 0 1-6 6H74" fill="none" stroke="#ffffff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="64" cy="64" r="8" fill="#ffffff"/>
+</svg>

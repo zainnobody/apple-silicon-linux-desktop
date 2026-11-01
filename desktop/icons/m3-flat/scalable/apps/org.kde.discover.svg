@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <!-- M3 Flat: Software. A bag. Original drawing. -->
+  <rect x="4" y="4" width="120" height="120" rx="28" fill="#f97316"/>
+  <path d="M48 52v-6a16 16 0 0 1 32 0v6" fill="none" stroke="#ffffff" stroke-width="9" stroke-linecap="round"/>
+  <rect x="32" y="52" width="64" height="48" rx="10" fill="#ffffff"/>
+  <circle cx="50" cy="64" r="4.5" fill="#f97316"/>
+  <circle cx="78" cy="64" r="4.5" fill="#f97316"/>
+</svg>

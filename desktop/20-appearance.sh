@@ -7,12 +7,12 @@
 . "$(dirname "$0")/lib.sh"
 mode="${1:-light}"
 UI_FONT="${UI_FONT:-Adwaita Sans}"; MONO_FONT="${MONO_FONT:-Hack}"
-# Icons and cursors are the KDE Breeze sets (original art, installed with Plasma). The WhiteSur icon and cursor sets copy Apple artwork,
+# Icons: the M3 Flat theme (own drawings, 86-icons.sh) when installed, else KDE Breeze. The cursor is KDE Breeze (original art). The WhiteSur icon and cursor sets copy Apple artwork,
 # so this pack does not use them. Override with ICON_LIGHT, ICON_DARK and CURSORS only for a set you may use.
 CURSORS="${CURSORS:-breeze_cursors}"
 case "$mode" in
-light) SCHEME=WhiteSur; PTHEME=WhiteSur-solid; ICONS=${ICON_LIGHT:-breeze}; DECO=WhiteSur-opaque; PROFILE=M3Light.profile ;;
-dark) SCHEME=WhiteSurDark; PTHEME=WhiteSur-solid-dark; ICONS=${ICON_DARK:-breeze-dark}; DECO=WhiteSur-dark-opaque; PROFILE=M3Dark.profile ;;
+light) SCHEME=WhiteSur; PTHEME=WhiteSur-solid; ICONS=${ICON_LIGHT:-$([ -d "$DATA/icons/m3-flat" ] && echo m3-flat || echo breeze)}; DECO=WhiteSur-opaque; PROFILE=M3Light.profile ;;
+dark) SCHEME=WhiteSurDark; PTHEME=WhiteSur-solid-dark; ICONS=${ICON_DARK:-$([ -d "$DATA/icons/m3-flat-dark" ] && echo m3-flat-dark || echo breeze-dark)}; DECO=WhiteSur-dark-opaque; PROFILE=M3Dark.profile ;;
 *) say "usage: $0 [light|dark]"; exit 2 ;;
 esac
 [ -d "$DATA/aurorae/themes/$DECO" ] || { say "Run 10-themes.sh first."; exit 1; }

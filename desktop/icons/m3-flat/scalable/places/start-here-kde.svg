@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <!-- M3 Flat: Launcher. Four rounded squares. Original drawing. -->
+  <rect x="22" y="22" width="38" height="38" rx="10" fill="#ffffff"/>
+  <rect x="68" y="22" width="38" height="38" rx="10" fill="#ffffff"/>
+  <rect x="22" y="68" width="38" height="38" rx="10" fill="#ffffff"/>
+  <rect x="68" y="68" width="38" height="38" rx="10" fill="#ffffff"/>
+</svg>

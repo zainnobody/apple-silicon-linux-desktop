@@ -38,6 +38,11 @@ Switch the look later with `m3-appearance light` or `m3-appearance dark`.
 `90-fit16.sh [SCALE]` sets the display scale to 2 (1728x1080 on the 3456x2160 panel), makes one flat gradient wallpaper for the desktop and the lock screen, and makes the dock 68 tall.
 Undo the scale with `kscreen-doctor output.eDP-1.scale.2.7`. The other changes are in the backup.
 
+## Motion and icons (stages 85 and 86, optional)
+
+`85-motion.sh [light|default|off]` sets the animation speed (light is 0.75 of the Plasma default). It loads no new effect and keeps blur off.
+`86-icons.sh [install|remove]` installs the original M3 Flat icons (dock apps, folder, trash, launcher). Other icons come from Breeze.
+
 ## Lock screen (stage 80, optional, not part of apply-all.sh)
 
 `80-lockscreen.sh` restyles the KDE lock screen: one flat colour, big clock, avatar, name, password field, a Touch ID hint. It has no blur, no shadow and no glass.
@@ -78,7 +83,7 @@ Run the `*-undo.sh` of the stage in `~/desktop-design-backups/`. It restores the
 
 This pack aims to look like macOS without copying Apple artwork. This is not legal advice.
 
-- **Icons and cursors:** KDE Breeze (original KDE art, installed with Plasma). The WhiteSur icon and cursor sets copy Apple icons (Finder, App Store and others) and the macOS pointer.
+- **Icons:** M3 Flat, drawn for this pack (`icons/m3-flat`, installed by `86-icons.sh`), on top of KDE Breeze (original KDE art, installed with Plasma). **Cursor:** KDE Breeze. The WhiteSur icon and cursor sets copy Apple icons (Finder, App Store and others) and the macOS pointer.
   The pack does not install them. `M3_APPLE_LOOKALIKE=1` brings them back for private use only. Do not ship them.
 - **Colours, window decoration, Plasma theme:** WhiteSur-kde by vinceliuice (GPL-3.0, https://github.com/vinceliuice/WhiteSur-kde, pinned commit in `lib.sh`).
   Flat shapes and colour values only. A search of the installed files found no Apple logo and no Apple name. The red, yellow and green window buttons follow a common convention.
