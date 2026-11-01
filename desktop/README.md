@@ -33,6 +33,11 @@ Close Dolphin and Konsole before stage 50.
 
 Switch the look later with `m3-appearance light` or `m3-appearance dark`.
 
+## 16 inch fit (stage 90, optional)
+
+`90-fit16.sh [SCALE]` sets the display scale to 2 (1728x1080 on the 3456x2160 panel), makes one flat gradient wallpaper for the desktop and the lock screen, and makes the dock 68 tall.
+Undo the scale with `kscreen-doctor output.eDP-1.scale.2.7`. The other changes are in the backup.
+
 ## Lock screen (stage 80, optional, not part of apply-all.sh)
 
 `80-lockscreen.sh` restyles the KDE lock screen: one flat colour, big clock, avatar, name, password field, a Touch ID hint. It has no blur, no shadow and no glass.
