@@ -51,10 +51,17 @@ Touch ID on the lock screen with no key press (Plasma 6.8):
 
 ```mermaid
 flowchart LR
-    detect["agx detect"] --> plan["agx plan-install"]
-    plan --> build["agx build-kernel<br/>.deb, .rpm or Arch package"]
-    build --> steps["agx step NAME<br/>dry run by default"]
-    steps --> desktop["desktop/apply-all.sh<br/>Mac-like KDE"]
+    detect(["agx detect"]):::hw
+    plan("agx plan-install"):::hw
+    build("agx build-kernel<br/><small>.deb, .rpm or Arch package</small>"):::core
+    steps("agx step NAME<br/><small>dry run by default</small>"):::core
+    desktop(["desktop/apply-all.sh<br/><small>Mac-like KDE</small>"]):::ui
+    detect --> plan --> build --> steps --> desktop
+    classDef hw fill:#e8f0fe,stroke:#4a72d9,stroke-width:1.5px,color:#14264d
+    classDef core fill:#e6f4ea,stroke:#2f8f4e,stroke-width:1.5px,color:#0f3a1f
+    classDef ui fill:#f3e8fd,stroke:#8e44c9,stroke-width:1.5px,color:#38174f
+    classDef ai fill:#fdeee0,stroke:#d9822b,stroke-width:1.5px,color:#4a2706
+    classDef todo fill:#f1f3f4,stroke:#9aa0a6,stroke-width:1.5px,stroke-dasharray:5 4,color:#3c4043
 ```
 
 ## Try it
