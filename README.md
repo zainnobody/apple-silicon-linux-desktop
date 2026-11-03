@@ -1,4 +1,12 @@
-# distro-pack
+# M3 Pro Asahi distro pack
+
+Part of the [M3 Pro Asahi Linux kit](https://github.com/zainnobody/m3-pro-asahi-agx-kit). Start with the kit's [guide](https://github.com/zainnobody/m3-pro-asahi-agx-kit/blob/main/GUIDE.md).
+
+[![License: GPL-2.0](https://img.shields.io/badge/license-GPL--2.0-blue)](LICENSE)
+![Tested on: M3 Pro J516S](https://img.shields.io/badge/tested%20on-M3%20Pro%20J516S-555)
+![Status: unofficial](https://img.shields.io/badge/Asahi%20Linux-unofficial-orange)
+
+> **Unofficial.** This is not Asahi Linux code. The Asahi developers do not support it. Report problems in this repository, not to Asahi.
 
 Apple silicon drivers for any Linux distro. One tool, `agx`, installs the boot parts, the kernel, the drivers, the GPU stack and an optional Mac-like desktop on Ubuntu, Debian, Kali, Fedora or Arch.
 
@@ -90,4 +98,10 @@ The kernel patches and config come from the sibling repository `agx-linux-kit` (
 
 ## License
 
-Not chosen yet. The kernel, m1n1 and Mesa sources keep their own licenses.
+The scripts and documents in this repository are under the GNU General Public License version 2 ([LICENSE](LICENSE)).
+
+Some files keep the license of the project they come from. Their SPDX header names it:
+
+- `desktop/lockscreen/`: changed copies of the KDE Plasma lock screen, GPL-2.0-or-later or LGPL-2.0-or-later, with the KDE authors' copyright lines.
+- `system/initramfs-tools/`: a port of the asahi-scripts firmware hooks, MIT.
+- `kernel/patches/`: Linux kernel patches, GPL-2.0.
