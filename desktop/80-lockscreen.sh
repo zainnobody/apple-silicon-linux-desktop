@@ -5,6 +5,7 @@
 #   80-lockscreen.sh build      make a test package "org.m3.flat" in ~/.local/share/plasma/shells (does not change the real lock screen)
 #   80-lockscreen.sh test [flat|stock] [OUT.png]   open the greeter in test mode (a window, no lock) and take a screenshot
 #   80-lockscreen.sh install    use the flat lock screen for real: a user copy of the shell package shadows the system one
+#   80-lockscreen.sh touchid    stock lock screen that starts the Touch ID check at lock, with no key press (tested on Plasma 6.8.2)
 #   80-lockscreen.sh remove     remove the user copy and the guard. The stock lock screen is back at the next login or lock.
 #   80-lockscreen.sh colour #RRGGBB | image /path.png    set the lock screen wallpaper (flat colour is the default)
 # Why a full copy: Plasma loads the shell package by id and takes the first match in the user folder. The copy is the system package
@@ -40,6 +41,22 @@ make_pkg() { # id [flat|stock] [visible]   flat = our lock screen, stock = syste
 	fi
 	sed -i "s/\"Id\": \"org.kde.plasma.desktop\"/\"Id\": \"$id\"/" "$dst/metadata.json"
 }
+write_guard() { # record the system shell and install the login guard that removes a stale copy
+	mkdir -p "$STATE" "$(dirname "$GUARD")"
+	fingerprint >"$STATE/system-shell.sha"
+	cat >"$GUARD" <<GUARDEOF
+#!/bin/sh
+# Written by 80-lockscreen.sh. Runs at login before plasmashell. If the system shell package changed (a Plasma update),
+# the user copy is stale, so remove it and the stock shell and lock screen are used.
+SYS=$SYS
+STATE=$STATE
+now=\$(cd "\$SYS" 2>/dev/null && find . -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | cut -d' ' -f1)
+if [ "\$now" != "\$(cat "\$STATE/system-shell.sha" 2>/dev/null)" ]; then
+	rm -rf "$SHELLS/org.kde.plasma.desktop"
+fi
+GUARDEOF
+	chmod +x "$GUARD"
+}
 set_wallpaper() { # colour value
 	kw kscreenlockerrc WallpaperPlugin org.kde.color Greeter
 	kw kscreenlockerrc Color "$1" Greeter Wallpaper org.kde.color General
@@ -70,23 +87,40 @@ install)
 	[ "${DESIGN_NO_BACKUP:-0}" = 1 ] || backup 80-lockscreen-install
 	[ -d "$SHELLS/org.m3.flat" ] || { say "Run build and test first."; exit 1; }
 	make_pkg org.kde.plasma.desktop
-	mkdir -p "$STATE" "$(dirname "$GUARD")"
-	fingerprint >"$STATE/system-shell.sha"
-	cat >"$GUARD" <<GUARDEOF
-#!/bin/sh
-# Written by 80-lockscreen.sh. Runs at login before plasmashell. If the system shell package changed (a Plasma update),
-# the user copy is stale, so remove it and the stock shell and lock screen are used.
-SYS=$SYS
-STATE=$STATE
-now=\$(cd "\$SYS" 2>/dev/null && find . -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | cut -d' ' -f1)
-if [ "\$now" != "\$(cat "\$STATE/system-shell.sha" 2>/dev/null)" ]; then
-	rm -rf "$SHELLS/org.kde.plasma.desktop"
-fi
-GUARDEOF
-	chmod +x "$GUARD"
+	write_guard
 	# Keep a wallpaper that is already set (for example by 90-fit16.sh). Set the flat colour only when none is set.
 	[ -n "$(kreadconfig6 --file kscreenlockerrc --group Greeter --key WallpaperPlugin)" ] || set_wallpaper "$LOCK_COLOR"
 	say "Installed. The flat lock screen is used from the next lock. plasmashell loads the copy at the next login (it is identical code)." ;;
+touchid)
+	# Stock lock screen plus two edits: start the fingerprint check when the lock screen opens, and keep the
+	# 1 s heartbeat running while locked. Stock KDE starts it only after a key press or mouse move (uiVisible),
+	# so a finger on the Touch ID key did nothing on the clock screen.
+	[ "${DESIGN_NO_BACKUP:-0}" = 1 ] || backup 80-lockscreen-touchid
+	make_pkg org.kde.plasma.desktop stock
+	python3 - "$SHELLS/org.kde.plasma.desktop/contents/lockscreen/LockScreenUi.qml" <<'PY' || { rm -rf "$SHELLS/org.kde.plasma.desktop"; exit 1; }
+import sys
+p = sys.argv[1]; s = open(p).read()
+a = """        Timer { // heart beat keeping the backend active for as long as we are in visible state
+            interval: 1000
+            running: !authenticator.unlocked && parent.uiVisible"""
+b = """        Timer { // heart beat keeping the backend active while locked (M3: also before uiVisible, for Touch ID)
+            interval: 1000
+            running: !authenticator.unlocked"""
+c = """        Component.onCompleted: launchAnimation.start();
+"""
+d = """        // M3: also start the fingerprint check as soon as the screen locks, like macOS. Stock KDE waits
+        // for a mouse move or key press (uiVisible), so a finger on the Touch ID key did nothing.
+        Component.onCompleted: {
+            launchAnimation.start();
+            authenticator.startAuthenticating();
+        }
+"""
+if s.count(a) != 1 or s.count(c) != 1:
+    sys.exit("This Plasma lock screen differs from 6.8.2. Nothing changed.")
+open(p, "w").write(s.replace(a, b).replace(c, d))
+PY
+	write_guard
+	say "Installed. The Touch ID check starts at the next lock. After a Plasma update the guard removes the copy at login; run touchid again." ;;
 remove)
 	rm -rf "$SHELLS/org.kde.plasma.desktop" "$SHELLS"/org.m3.* "$GUARD" "$STATE"
 	kwriteconfig6 --file kscreenlockerrc --group Greeter --key WallpaperPlugin --delete

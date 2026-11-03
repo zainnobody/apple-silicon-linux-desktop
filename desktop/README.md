@@ -52,6 +52,7 @@ It needs no root. It does not change PAM, fprintd or the login screen. Fingerpri
 ./80-lockscreen.sh build      # test packages only. The real lock screen does not change.
 ./80-lockscreen.sh test flat  # a test window for 20 seconds, no lock. Also: test stock
 ./80-lockscreen.sh install    # use it for real. Backup first.
+./80-lockscreen.sh touchid    # stock lock screen, Touch ID starts at lock (Plasma 6.8)
 ./80-lockscreen.sh remove     # the stock lock screen is back
 ./80-lockscreen.sh colour '#0b3d91'   # or: image /path/to/file.png
 ```
@@ -77,7 +78,8 @@ Run the `*-undo.sh` of the stage in `~/desktop-design-backups/`. It restores the
 - Dolphin has no column view. It has icons, compact and details.
 - A Mac keyboard sends the Cmd key as Meta (Super) on Linux.
 - The Plasma login screen is not changed. That needs root (see `root-options/plasmalogin-flat.sh`).
-- The flat lock screen is a copy of a part of the Plasma shell. After a big Plasma update, run `80-lockscreen.sh install` again to see if it still fits.
+- The flat lock screen is a copy of a part of the Plasma shell, made for Plasma 6.7. It does not load on Plasma 6.8. On 6.8 use `80-lockscreen.sh touchid`: the stock lock screen with two small edits, so that the Touch ID check starts at lock with no key press (tested on 6.8.2, 2026-11-03).
+- A login guard removes any lock screen copy after a Plasma update, so a stale copy never runs. Then run `touchid` (or `install`) again.
 
 ## Licences and Apple material
 
