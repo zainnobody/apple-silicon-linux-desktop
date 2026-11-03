@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Driver, guide or Touch ID problem
+    url: https://github.com/zainnobody/apple-silicon-linux-kit/issues/new/choose
+    about: Problems with the kernel patches, Mesa, Touch ID or the guide go to the kit.
+  - name: Problem that also happens without these patches
+    url: https://asahilinux.org/community/
+    about: If the problem also happens on a stock Asahi install, ask the Asahi community.

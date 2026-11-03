@@ -1,0 +1,74 @@
+name: Bug report
+description: Something in the agx installer, the kernel RPM or the desktop does not work.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This is a community project, not Asahi Linux. Please do not send these problems to the Asahi developers.
+
+        Before you paste output, remove serial numbers, MAC addresses, user names and host names.
+  - type: input
+    id: mac
+    attributes:
+      label: Mac model
+      description: "Run: cat /proc/device-tree/model"
+    validations:
+      required: true
+  - type: dropdown
+    id: distro
+    attributes:
+      label: Distribution
+      options:
+        - Fedora Asahi Remix
+        - Debian
+        - Ubuntu
+        - Kali
+        - Arch Linux ARM
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Distribution version, desktop and kernel
+      placeholder: 44, KDE Plasma 6.8.2, 7.2.11-m3gpu+
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - agx installer
+        - Kernel RPM build
+        - Desktop (top bar, dock, icons, search)
+        - Lock screen or Touch ID at the lock screen
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: The command you ran, what you expected, and what happened.
+    validations:
+      required: true
+  - type: textarea
+    id: detect
+    attributes:
+      label: agx detect output
+      description: "Run: distro-pack/agx detect"
+      render: text
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      render: text
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before you send
+      options:
+        - label: I removed serial numbers, MAC addresses and names from the output.
+          required: true
