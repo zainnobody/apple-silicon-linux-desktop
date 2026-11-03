@@ -1,6 +1,6 @@
-# M3 Pro Asahi distro pack
+# Apple Silicon Linux Desktop
 
-Part of the [M3 Pro Asahi Linux kit](https://github.com/zainnobody/m3-pro-asahi-agx-kit). Start with the kit's [guide](https://github.com/zainnobody/m3-pro-asahi-agx-kit/blob/main/GUIDE.md).
+Part of [Orchard](https://github.com/zainnobody/orchard), extra drivers and fixes for Linux on Apple silicon Macs. Start with the [Apple Silicon Linux Kit guide](https://github.com/zainnobody/apple-silicon-linux-kit/blob/main/GUIDE.md).
 
 [![License: GPL-2.0](https://img.shields.io/badge/license-GPL--2.0-blue)](LICENSE) ![Tested on: M3 Pro J516S](https://img.shields.io/badge/tested%20on-M3%20Pro%20J516S-555) ![Status: unofficial](https://img.shields.io/badge/Asahi%20Linux-unofficial-orange)
 
@@ -21,7 +21,7 @@ The optional Mac-like desktop (`desktop/`) on the tested M3 Pro: a top bar, a do
 </tr>
 </table>
 
-More screenshots and the full install path are in the [kit README](https://github.com/zainnobody/m3-pro-asahi-agx-kit#get-the-full-setup).
+More screenshots and the full install path are in the [kit README](https://github.com/zainnobody/apple-silicon-linux-kit#get-the-full-setup).
 
 ## Try it
 
