@@ -10,6 +10,19 @@ Apple silicon drivers for any Linux distro. One tool, `agx`, installs the boot p
 
 Status (2026-10-27): phase 0 is done, and the offline part of phase 1. `agx build-kernel` plans the kernel package build (.deb, .rpm, Arch), and the kernel step installs that package. Phase 0 (2026-10-26): `agx detect` works. The install steps are ported from agx-linux-kit and run as dry runs on the Debian family, Fedora and Arch. Real installs (`--apply`) are not enabled yet. The Debian family has its own firmware hook now (2026-10-27): Ubuntu, Debian and Kali load the Apple firmware at boot like Fedora and Arch. It is tested with fake root file systems, not on a real boot yet.
 
+## Screenshots
+
+The optional Mac-like desktop (`desktop/`) on the tested M3 Pro: a top bar, a dock, flat icons and a flat lock screen with a Touch ID hint.
+
+<table>
+<tr>
+<td><img src="docs/screenshots/desktop.jpg" alt="KDE desktop with a top bar and a dock"></td>
+<td><img src="docs/screenshots/lock-screen.jpg" alt="Flat lock screen with a password field and a fingerprint hint"></td>
+</tr>
+</table>
+
+More screenshots and the full install path are in the [kit README](https://github.com/zainnobody/m3-pro-asahi-agx-kit#get-the-full-setup).
+
 ## Try it
 
 On a Mac that runs Linux:
@@ -57,6 +70,17 @@ tests/build.sh
 ```
 
 Set `AGXFW_SH` to run the firmware scripts under another shell, for example `AGXFW_SH=bash`. The default is dash when it exists.
+
+## Test results
+
+| Suite | Checks | Result |
+|---|---|---|
+| `tests/run.sh` (detection) | 12 | All pass |
+| `tests/install.sh` (install steps, dry runs) | 23 | All pass |
+| `tests/build.sh` (kernel package build plan) | 30 | All pass |
+| `tests/initramfs.sh` (Debian family firmware hook) | 51 | All pass |
+
+Run on 2026-11-02 on macOS with bash 3.2. The Fedora kernel RPM build and its boot on the M3 are in `STATUS.md`.
 
 ## Layout
 
