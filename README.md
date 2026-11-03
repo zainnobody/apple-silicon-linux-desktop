@@ -23,6 +23,40 @@ The optional Mac-like desktop (`desktop/`) on the tested M3 Pro: a top bar, a do
 
 More screenshots and the full install path are in the [kit README](https://github.com/zainnobody/apple-silicon-linux-kit#get-the-full-setup).
 
+## Quick start
+
+```bash
+git clone https://github.com/zainnobody/apple-silicon-linux-desktop.git distro-pack && cd distro-pack
+```
+
+```bash
+./agx detect          # your Mac, its support level and the install plan. Changes nothing.
+```
+
+```bash
+./agx plan-install    # every install step for this Mac, in order, with the reboots. Changes nothing.
+```
+
+The Mac-like desktop, as your normal user in a running Plasma session:
+
+```bash
+cd desktop && ./apply-all.sh light     # or dark. Each stage makes a backup and an undo script.
+```
+
+Touch ID on the lock screen with no key press (Plasma 6.8):
+
+```bash
+./80-lockscreen.sh touchid
+```
+
+```mermaid
+flowchart LR
+    detect["agx detect"] --> plan["agx plan-install"]
+    plan --> build["agx build-kernel<br/>.deb, .rpm or Arch package"]
+    build --> steps["agx step NAME<br/>dry run by default"]
+    steps --> desktop["desktop/apply-all.sh<br/>Mac-like KDE"]
+```
+
 ## Try it
 
 On a Mac that runs Linux:
